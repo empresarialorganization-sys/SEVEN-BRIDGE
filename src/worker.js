@@ -3,9 +3,10 @@ import { handleMcp } from './mcp.js';
 
 export { DeviceHub };
 
-// Migration-only legacy route. Remove after the installed ChatGPT plugin is moved
-// to the derived private route below.
+// Migration-only routes. They are removed immediately after the installed
+// ChatGPT plugin is moved to the derived private route.
 const LEGACY_PLUGIN_MCP_PATH = '/mcp/Cdev0KZOIWwvwrfRV1yh2iqInZ4losNuwtZgAer4QjY';
+const ONE_SHOT_AUDIT_PATH = '/internal/one-shot/8f73d2c65aa74c46b5370fef95bcf89b';
 const DEVICE_CODE_FOR_MIGRATION = '493680';
 
 async function derivedToken(env, label) {
@@ -19,11 +20,6 @@ async function derivedToken(env, label) {
 async function privatePluginPath(env) {
   const token = await derivedToken(env, 'seven-plugin-v1');
   return token ? `/mcp/plugin/${token}` : null;
-}
-
-async function auditBootstrapPath(env) {
-  const token = await derivedToken(env, 'seven-audit-bootstrap-v1');
-  return token ? `/internal/audit/${token}` : null;
 }
 
 async function pushAuditCommand(env, mode) {
@@ -71,22 +67,18 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
-    if (url.pathname === '/mcp') {
-      return handleMcp(request, env);
-    }
+    if (url.pathname === '/mcp') return handleMcp(request, env);
 
     const privatePath = await privatePluginPath(env);
     if (privatePath && url.pathname === privatePath) {
       return handleMcp(request, env, { trusted: true });
     }
 
-    // Temporary compatibility during the endpoint migration only.
     if (url.pathname === LEGACY_PLUGIN_MCP_PATH) {
       return handleMcp(request, env, { trusted: true });
     }
 
-    const bootstrapPath = await auditBootstrapPath(env);
-    if (request.method === 'GET' && bootstrapPath && url.pathname === bootstrapPath) {
+    if (request.method === 'GET' && url.pathname === ONE_SHOT_AUDIT_PATH) {
       return pushAuditCommand(env, url.searchParams.get('mode') || 'menu');
     }
 
