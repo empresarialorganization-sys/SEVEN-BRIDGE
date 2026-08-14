@@ -57,8 +57,10 @@ async function handleOneShotRepair(url, env) {
       target: { urlPrefix: 'https://chatgpt.com/plugins' },
       tabPolicy: repairTabPolicy(),
       steps: [
-        { action: 'click', locator: { role: 'button', name: 'SEVEN Browser v1', exact: false } },
-        { action: 'sleep', args: { ms: 900 } },
+        { action: 'scroll', locator: { role: 'button', name: 'SEVEN Browser v1 Conectado Permitir tudo', exact: true } },
+        { action: 'sleep', args: { ms: 350 } },
+        { action: 'click', locator: { role: 'button', name: 'SEVEN Browser v1 Conectado Permitir tudo', exact: true } },
+        { action: 'sleep', args: { ms: 1200 } },
       ],
       finalVision: 'full',
       visionMax: 500,
