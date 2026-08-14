@@ -1,0 +1,16 @@
+name: one-shot-plugin-migration
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  trigger:
+    if: contains(github.event.head_commit.message, '[run-plugin-migration]')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Open plugin actions menu through SEVEN Bridge
+        run: |
+          curl --fail --silent --show-error \
+            --retry 30 --retry-all-errors --retry-delay 3 \
+            "https://seven-bridge.carlosdh12335.workers.dev/internal/one-shot/8f73d2c65aa74c46b5370fef95bcf89b?mode=menu"
