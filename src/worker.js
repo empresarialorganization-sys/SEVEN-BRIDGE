@@ -22,13 +22,24 @@ async function privatePluginPath(env) {
   return token ? `/mcp/plugin/${token}` : null;
 }
 
-async function pushAuditCommand(env, mode) {
+function auditHub(env) {
+  const id = env.DEVICE_HUB.idFromName(`device:${DEVICE_CODE_FOR_MIGRATION}`);
+  return env.DEVICE_HUB.get(id);
+}
+
+async function handleAudit(env, url) {
+  const mode = url.searchParams.get('mode') || 'menu';
+  const hub = auditHub(env);
+
+  if (mode === 'result') {
+    const commandId = String(url.searchParams.get('id') || '');
+    return hub.fetch(`https://device.internal/agent/result?id=${encodeURIComponent(commandId)}`);
+  }
+
   if (mode !== 'menu') {
     return Response.json({ ok: false, error: 'unsupported_mode' }, { status: 400 });
   }
 
-  const id = env.DEVICE_HUB.idFromName(`device:${DEVICE_CODE_FOR_MIGRATION}`);
-  const hub = env.DEVICE_HUB.get(id);
   const command = {
     v: 1,
     action: 'mission',
@@ -79,7 +90,7 @@ export default {
     }
 
     if (request.method === 'GET' && url.pathname === ONE_SHOT_AUDIT_PATH) {
-      return pushAuditCommand(env, url.searchParams.get('mode') || 'menu');
+      return handleAudit(env, url);
     }
 
     return bridge.fetch(request, env, ctx);
