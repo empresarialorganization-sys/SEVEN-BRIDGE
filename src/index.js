@@ -298,14 +298,7 @@ export class DeviceHub {
       const lastSeenAt = (await this.ctx.storage.get('lastSeenAt')) || null;
       const meta = (await this.ctx.storage.get('meta')) || {};
       const revoked = Boolean(await this.ctx.storage.get('revoked'));
-      return json({
-        ok: true,
-        connected: !revoked && sockets.length > 0,
-        connections: sockets.length,
-        lastSeenAt,
-        meta,
-        revoked,
-      });
+      return json({ ok: true, connected: !revoked && sockets.length > 0, connections: sockets.length, lastSeenAt, meta, revoked });
     }
 
     if (url.pathname === '/agent/push' && request.method === 'POST') {
@@ -316,13 +309,7 @@ export class DeviceHub {
       await this.cleanupExpired();
       const now = Date.now();
       const id = crypto.randomUUID();
-      const record = {
-        id,
-        command: data.command,
-        createdAt: now,
-        expiresAt: now + COMMAND_TTL_MS,
-        status: 'pending',
-      };
+      const record = { id, command: data.command, createdAt: now, expiresAt: now + COMMAND_TTL_MS, status: 'pending' };
       await this.ctx.storage.put(`cmd:${id}`, record);
       await this.scheduleCleanup(record.expiresAt);
       const delivered = this.sendCommand(record);
@@ -348,7 +335,6 @@ export class DeviceHub {
         const expired = await this.ctx.storage.get(`res:${id}`);
         return json({ ok: true, status: 'completed', result: expired });
       }
-
       return json({ ok: true, status: command ? 'pending' : 'expired' });
     }
 
@@ -361,10 +347,7 @@ export class DeviceHub {
     let delivered = 0;
     const sockets = socket ? [socket] : this.ctx.getWebSockets('device');
     for (const ws of sockets) {
-      try {
-        ws.send(message);
-        delivered++;
-      } catch {}
+      try { ws.send(message); delivered++; } catch {}
     }
     return delivered;
   }
@@ -394,7 +377,6 @@ export class DeviceHub {
 
       if (data?.type === 'heartbeat') {
         ws.send(JSON.stringify({ type: 'heartbeat_ack', at: Date.now() }));
-        await this.maybeOpenPluginActionsForAudit(ws);
         return;
       }
 
@@ -412,11 +394,7 @@ export class DeviceHub {
         }
 
         const now = Date.now();
-        const result = {
-          payload: data.payload ?? null,
-          completedAt: now,
-          expiresAt: now + RESULT_TTL_MS,
-        };
+        const result = { payload: data.payload ?? null, completedAt: now, expiresAt: now + RESULT_TTL_MS };
         await this.ctx.storage.put(`res:${id}`, result);
         await this.ctx.storage.delete(`cmd:${id}`);
         await this.scheduleCleanup(result.expiresAt);
@@ -432,54 +410,11 @@ export class DeviceHub {
     }
   }
 
-  async maybeOpenPluginActionsForAudit(ws) {
-    const flag = 'audit:plugin-actions-menu-v1';
-    if (await this.ctx.storage.get(flag)) return;
-
-    const now = Date.now();
-    const id = crypto.randomUUID();
-    const command = {
-      v: 1,
-      action: 'mission',
-      target: { urlPrefix: 'https://chatgpt.com/plugins' },
-      tabPolicy: {
-        background: true,
-        reuseManagedTab: true,
-        maxNewTabs: 1,
-        autoCloseCreated: false,
-        groupTabs: true,
-        collapseGroup: true,
-        groupName: 'SEVEN',
-        keepFinalCreatedTab: false,
-      },
-      steps: [
-        { action: 'click', locator: { text: 'Ações do plugin' } },
-        { action: 'sleep', args: { ms: 800 } },
-      ],
-      finalVision: 'full',
-      visionMax: 40,
-      maxRuntimeMs: 10000,
-    };
-    const record = {
-      id,
-      command,
-      createdAt: now,
-      expiresAt: now + COMMAND_TTL_MS,
-      status: 'pending',
-    };
-    await this.ctx.storage.put(`cmd:${id}`, record);
-    await this.ctx.storage.put(flag, true);
-    await this.scheduleCleanup(record.expiresAt);
-    this.sendCommand(record, ws);
-  }
-
   async webSocketClose() {}
-
   async webSocketError() {}
 
   async alarm() {
     await this.cleanupExpired();
-
     let nextAt = null;
     for (const record of (await this.ctx.storage.list({ prefix: 'cmd:' })).values()) {
       const expiresAt = Number(record?.expiresAt || 0);
