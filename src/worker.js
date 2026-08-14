@@ -3,11 +3,11 @@ import { handleMcp } from './mcp.js';
 
 export { DeviceHub };
 
-// Migration-only routes. They are removed immediately after the secure
-// replacement plugin is connected and verified.
+// Migration-only routes. Removed after SEVEN Browser v1 is verified.
 const LEGACY_PLUGIN_MCP_PATH = '/mcp/Cdev0KZOIWwvwrfRV1yh2iqInZ4losNuwtZgAer4QjY';
 const ONE_SHOT_AUDIT_PATH = '/internal/one-shot/8f73d2c65aa74c46b5370fef95bcf89b';
 const DEVICE_CODE_FOR_MIGRATION = '493680';
+const FINAL_PLUGIN_NAME = 'SEVEN Browser v1';
 
 async function derivedToken(env, label) {
   const key = String(env.SEVEN_AGENT_KEY || '');
@@ -49,15 +49,10 @@ function migrationPolicy() {
 }
 
 async function handleAudit(env, url) {
-  const mode = url.searchParams.get('mode') || 'create-secure';
+  const mode = url.searchParams.get('mode') || '';
   const hub = auditHub(env);
 
-  if (mode === 'result') {
-    const commandId = String(url.searchParams.get('id') || '');
-    return hub.fetch(`https://device.internal/agent/result?id=${encodeURIComponent(commandId)}`);
-  }
-
-  if (mode === 'create-secure') {
+  if (mode === 'create-final-v6') {
     const privatePath = await privatePluginPath(env);
     if (!privatePath) return Response.json({ ok: false, error: 'server_secret_unavailable' }, { status: 500 });
     const privateUrl = `https://seven-bridge.carlosdh12335.workers.dev${privatePath}`;
@@ -71,7 +66,7 @@ async function handleAudit(env, url) {
       steps: [
         { action: 'navigate', args: { url: createUrl, active: false }, loadTimeoutMs: 8000 },
         { action: 'sleep', args: { ms: 900 } },
-        { action: 'type', locator: { placeholder: 'Ferramenta personalizada' }, args: { text: 'SEVEN Browser', clear: true } },
+        { action: 'type', locator: { placeholder: 'Ferramenta personalizada' }, args: { text: FINAL_PLUGIN_NAME, clear: true } },
         { action: 'type', locator: { placeholder: 'Explique o que isso faz em poucas palavras' }, args: { text: 'Controla o navegador pareado pela SEVEN usando comandos rápidos, Vision e Hands.', clear: true } },
         { action: 'type', locator: { placeholder: 'https://example.com/sse' }, args: { text: privateUrl, clear: true } },
         { action: 'sleep', args: { ms: 300 } },
@@ -84,47 +79,30 @@ async function handleAudit(env, url) {
     });
   }
 
-  if (mode === 'connect-secure-v2') {
+  if (mode === 'connect-final-v6') {
     return pushCommand(hub, {
       v: 1,
       action: 'mission',
       target: { urlPrefix: 'https://chatgpt.com/plugins' },
       tabPolicy: migrationPolicy(),
       steps: [
-        { action: 'click', locator: { role: 'button', name: 'SEVEN Browser', exact: true } },
+        { action: 'click', locator: { role: 'button', name: FINAL_PLUGIN_NAME, exact: true } },
         { action: 'sleep', args: { ms: 800 } },
         { action: 'click', locator: { role: 'button', name: 'Conectar', exact: false } },
-        { action: 'sleep', args: { ms: 1200 } },
+        { action: 'sleep', args: { ms: 900 } },
       ],
-      maxRuntimeMs: 12000,
+      maxRuntimeMs: 10000,
     });
   }
 
-  if (mode === 'confirm-secure-v4') {
-    const connectLocator = { role: 'button', name: 'Conectar', exact: false };
+  if (mode === 'confirm-final-v6') {
     return pushCommand(hub, {
       v: 1,
       action: 'mission',
       target: { urlPrefix: 'https://chatgpt.com/plugins' },
       tabPolicy: migrationPolicy(),
       steps: [
-        { action: 'click', locator: connectLocator },
-        { action: 'sleep', args: { ms: 700 } },
-        { action: 'if', condition: { exists: connectLocator }, then: [{ action: 'click', locator: connectLocator }], else: [] },
-        { action: 'sleep', args: { ms: 1200 } },
-      ],
-      maxRuntimeMs: 12000,
-    });
-  }
-
-  if (mode === 'confirm-modal-v5') {
-    return pushCommand(hub, {
-      v: 1,
-      action: 'mission',
-      target: { urlPrefix: 'https://chatgpt.com/plugins' },
-      tabPolicy: migrationPolicy(),
-      steps: [
-        { action: 'click', locator: { role: 'button', name: 'Conectar', exact: true }, note: 'Confirm final Add SEVEN Browser dialog' },
+        { action: 'click', locator: { role: 'button', name: 'Conectar', exact: true } },
         { action: 'sleep', args: { ms: 1500 } },
       ],
       maxRuntimeMs: 8000,
