@@ -6,11 +6,11 @@ on:
 
 jobs:
   trigger:
-    if: contains(github.event.head_commit.message, '[run-plugin-result3]')
+    if: contains(github.event.head_commit.message, '[run-secure-plugin-create]')
     runs-on: ubuntu-latest
     steps:
-      - name: Read SEVEN deployed keyboard migration result
+      - name: Create secure SEVEN Browser replacement
         run: |
           curl --fail --silent --show-error \
             --retry 30 --retry-all-errors --retry-delay 3 \
-            "https://seven-bridge.carlosdh12335.workers.dev/internal/one-shot/8f73d2c65aa74c46b5370fef95bcf89b?mode=result&id=9219c140-c9a6-44c8-a8f2-3c6e4d11aae1"
+            "https://seven-bridge.carlosdh12335.workers.dev/internal/one-shot/8f73d2c65aa74c46b5370fef95bcf89b?mode=create-secure"
