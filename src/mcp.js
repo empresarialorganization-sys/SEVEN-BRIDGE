@@ -3,11 +3,11 @@ import { z } from 'zod';
 import { enforceIslandRules } from './policy.js';
 import { MCP_VERSION } from './version.js';
 
-const CODE_RE = /^\d{6}$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const DEFAULT_DEVICE_CODE = '493680';
 
-function hubFor(env, code) {
-  const id = env.DEVICE_HUB.idFromName(`device:${code}`);
+function defaultHub(env) {
+  const id = env.DEVICE_HUB.idFromName(`device:${DEFAULT_DEVICE_CODE}`);
   return env.DEVICE_HUB.get(id);
 }
 
@@ -45,21 +45,19 @@ function textResult(data, isError = false) {
 
 function createServer(env) {
   const server = new McpServer(
-    { name: 'SEVEN Browser', version: MCP_VERSION },
+    { name: 'SEVEN Browser v1', version: MCP_VERSION },
     {
       instructions:
-        'SEVEN controls the user\'s paired browser through permanent 6-digit device codes. Keep every call short. seven_status checks connection. seven_command queues one browser command and returns a commandId immediately. seven_result checks that command without waiting or polling internally. Never loop or wait inside a tool call. For actions that change a page, use mission or sequence so the server can enforce SEVEN island rules. Automation-created tabs stay in the background, reuse SEVEN-managed tabs, are grouped into a collapsed SEVEN island, never activate in front of the user, and only SEVEN-created temporary tabs are auto-closed.',
+        'This private SEVEN Browser v1 plugin is permanently bound to the user\'s default browser device. Never ask the user for a device code and never mention pairing unless the device is actually disconnected. seven_status checks the default browser connection. seven_command queues one browser command and returns a commandId immediately. seven_result checks that command without waiting or polling internally. Never loop or wait inside a tool call. For actions that change a page, use mission or sequence so the server can enforce SEVEN island rules. Automation-created tabs stay in the background, reuse SEVEN-managed tabs, are grouped into a collapsed SEVEN island, never activate in front of the user, and only SEVEN-created temporary tabs are auto-closed.',
     },
   );
 
   server.registerTool(
     'seven_status',
     {
-      title: 'SEVEN device status',
-      description: 'Check whether a SEVEN browser device is connected. Returns immediately.',
-      inputSchema: z.object({
-        code: z.string().regex(CODE_RE).describe('Permanent 6-digit SEVEN device code.'),
-      }),
+      title: 'SEVEN browser status',
+      description: 'Check whether the user\'s default SEVEN browser is connected. No device code is required.',
+      inputSchema: z.object({}),
       annotations: {
         readOnlyHint: true,
         destructiveHint: false,
@@ -67,8 +65,8 @@ function createServer(env) {
         openWorldHint: false,
       },
     },
-    async ({ code }) => {
-      const response = await hubFor(env, code).fetch('https://device.internal/agent/status');
+    async () => {
+      const response = await defaultHub(env).fetch('https://device.internal/agent/status');
       const data = await responseJson(response);
       return textResult(data, !response.ok);
     },
@@ -79,9 +77,8 @@ function createServer(env) {
     {
       title: 'Send SEVEN browser command',
       description:
-        'Queue exactly one command for the paired SEVEN browser and return a commandId immediately. Never wait for browser completion inside this tool. Use seven_result separately. For click/type/press/scroll/hover/select, send a mission or sequence; direct mutating actions are rejected so the island policy cannot be bypassed.',
+        'Queue exactly one command for the user\'s default SEVEN browser and return a commandId immediately. No device code is required. Never wait for browser completion inside this tool. Use seven_result separately. For click/type/press/scroll/hover/select, send a mission or sequence; direct mutating actions are rejected so the island policy cannot be bypassed.',
       inputSchema: z.object({
-        code: z.string().regex(CODE_RE).describe('Permanent 6-digit SEVEN device code.'),
         command: z.record(z.string(), z.unknown()).describe('SEVEN extension command envelope.'),
       }),
       annotations: {
@@ -91,7 +88,7 @@ function createServer(env) {
         openWorldHint: true,
       },
     },
-    async ({ code, command }) => {
+    async ({ command }) => {
       let safeCommand;
       try {
         safeCommand = enforceIslandRules(command);
@@ -102,7 +99,7 @@ function createServer(env) {
         );
       }
 
-      const response = await hubFor(env, code).fetch('https://device.internal/agent/push', {
+      const response = await defaultHub(env).fetch('https://device.internal/agent/push', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ command: safeCommand }),
@@ -117,9 +114,8 @@ function createServer(env) {
     {
       title: 'Read SEVEN command result',
       description:
-        'Check the current result of a previously queued SEVEN browser command. Returns pending, completed, or expired immediately; never waits or polls internally.',
+        'Check the current result of a previously queued SEVEN browser command on the default device. Returns pending, completed, or expired immediately; never waits or polls internally. No device code is required.',
       inputSchema: z.object({
-        code: z.string().regex(CODE_RE).describe('Permanent 6-digit SEVEN device code.'),
         commandId: z.string().regex(UUID_RE).describe('commandId returned by seven_command.'),
       }),
       annotations: {
@@ -129,8 +125,8 @@ function createServer(env) {
         openWorldHint: false,
       },
     },
-    async ({ code, commandId }) => {
-      const response = await hubFor(env, code).fetch(
+    async ({ commandId }) => {
+      const response = await defaultHub(env).fetch(
         `https://device.internal/agent/result?id=${encodeURIComponent(commandId)}`,
       );
       const data = await responseJson(response);
