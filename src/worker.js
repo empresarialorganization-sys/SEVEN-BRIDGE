@@ -58,12 +58,17 @@ async function handleAudit(env, url) {
       {
         action: 'click',
         locator: { text: 'Ações do plugin' },
-        note: 'Open plugin actions menu for secure endpoint migration',
+        note: 'Focus plugin actions menu button',
       },
-      { action: 'sleep', args: { ms: 700 } },
+      {
+        action: 'press',
+        args: { key: 'ENTER' },
+        note: 'Open Radix menu by keyboard activation',
+      },
+      { action: 'sleep', args: { ms: 1200 } },
     ],
     finalVision: 'full',
-    visionMax: 40,
+    visionMax: 60,
     maxRuntimeMs: 10000,
   };
 
