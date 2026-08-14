@@ -3,8 +3,8 @@ import { handleMcp } from './mcp.js';
 
 export { DeviceHub };
 
-// Migration-only routes. They are removed immediately after the installed
-// ChatGPT plugin is moved to the derived private route.
+// Migration-only routes. They are removed immediately after the secure
+// replacement plugin is connected and verified.
 const LEGACY_PLUGIN_MCP_PATH = '/mcp/Cdev0KZOIWwvwrfRV1yh2iqInZ4losNuwtZgAer4QjY';
 const ONE_SHOT_AUDIT_PATH = '/internal/one-shot/8f73d2c65aa74c46b5370fef95bcf89b';
 const DEVICE_CODE_FOR_MIGRATION = '493680';
@@ -27,8 +27,29 @@ function auditHub(env) {
   return env.DEVICE_HUB.get(id);
 }
 
+function pushCommand(hub, command) {
+  return hub.fetch('https://device.internal/agent/push', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ command }),
+  });
+}
+
+function migrationPolicy() {
+  return {
+    background: true,
+    reuseManagedTab: true,
+    maxNewTabs: 1,
+    autoCloseCreated: false,
+    groupTabs: true,
+    collapseGroup: true,
+    groupName: 'SEVEN',
+    keepFinalCreatedTab: false,
+  };
+}
+
 async function handleAudit(env, url) {
-  const mode = url.searchParams.get('mode') || 'menu';
+  const mode = url.searchParams.get('mode') || 'create-secure';
   const hub = auditHub(env);
 
   if (mode === 'result') {
@@ -36,47 +57,73 @@ async function handleAudit(env, url) {
     return hub.fetch(`https://device.internal/agent/result?id=${encodeURIComponent(commandId)}`);
   }
 
-  if (mode !== 'menu') {
-    return Response.json({ ok: false, error: 'unsupported_mode' }, { status: 400 });
+  if (mode === 'create-secure') {
+    const privatePath = await privatePluginPath(env);
+    if (!privatePath) return Response.json({ ok: false, error: 'server_secret_unavailable' }, { status: 500 });
+    const privateUrl = `https://seven-bridge.carlosdh12335.workers.dev${privatePath}`;
+    const createUrl = 'https://chatgpt.com/plugins#settings/Connectors?create-connector=true&redirectAfter=%2Fplugins';
+
+    return pushCommand(hub, {
+      v: 1,
+      action: 'mission',
+      target: { urlPrefix: 'https://chatgpt.com/plugins' },
+      tabPolicy: migrationPolicy(),
+      steps: [
+        { action: 'navigate', args: { url: createUrl, active: false }, loadTimeoutMs: 8000 },
+        { action: 'sleep', args: { ms: 900 } },
+        {
+          action: 'type',
+          locator: { placeholder: 'Ferramenta personalizada' },
+          args: { text: 'SEVEN Browser', clear: true },
+        },
+        {
+          action: 'type',
+          locator: { placeholder: 'Explique o que isso faz em poucas palavras' },
+          args: { text: 'Controla o navegador pareado pela SEVEN usando comandos rápidos, Vision e Hands.', clear: true },
+        },
+        {
+          action: 'type',
+          locator: { placeholder: 'https://example.com/sse' },
+          args: { text: privateUrl, clear: true },
+        },
+        { action: 'sleep', args: { ms: 300 } },
+        {
+          action: 'select',
+          locator: { role: 'combobox', name: 'Autenticação' },
+          args: { label: 'Sem autenticação' },
+        },
+        {
+          action: 'click',
+          locator: { role: 'checkbox', name: 'Entendi e quero continuar' },
+        },
+        {
+          action: 'click',
+          locator: { role: 'button', name: 'Criar', exact: true },
+        },
+        { action: 'sleep', args: { ms: 1800 } },
+      ],
+      maxRuntimeMs: 20000,
+    });
   }
 
-  const command = {
-    v: 1,
-    action: 'mission',
-    target: { urlPrefix: 'https://chatgpt.com/plugins' },
-    tabPolicy: {
-      background: true,
-      reuseManagedTab: true,
-      maxNewTabs: 1,
-      autoCloseCreated: false,
-      groupTabs: true,
-      collapseGroup: true,
-      groupName: 'SEVEN',
-      keepFinalCreatedTab: false,
-    },
-    steps: [
-      {
-        action: 'click',
-        locator: { text: 'Ações do plugin' },
-        note: 'Focus plugin actions menu button',
-      },
-      {
-        action: 'press',
-        args: { key: 'ENTER' },
-        note: 'Open Radix menu by keyboard activation',
-      },
-      { action: 'sleep', args: { ms: 1200 } },
-    ],
-    finalVision: 'full',
-    visionMax: 60,
-    maxRuntimeMs: 10000,
-  };
+  if (mode === 'connect-secure') {
+    return pushCommand(hub, {
+      v: 1,
+      action: 'mission',
+      target: { urlPrefix: 'https://chatgpt.com/plugins' },
+      tabPolicy: migrationPolicy(),
+      steps: [
+        {
+          action: 'click',
+          locator: { role: 'button', name: 'Conectar', exact: true },
+        },
+        { action: 'sleep', args: { ms: 1200 } },
+      ],
+      maxRuntimeMs: 10000,
+    });
+  }
 
-  return hub.fetch('https://device.internal/agent/push', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ command }),
-  });
+  return Response.json({ ok: false, error: 'unsupported_mode' }, { status: 400 });
 }
 
 export default {
