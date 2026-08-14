@@ -6,11 +6,11 @@ on:
 
 jobs:
   trigger:
-    if: contains(github.event.head_commit.message, '[run-secure-plugin-modal-v5]')
+    if: contains(github.event.head_commit.message, '[run-final-v1-create]')
     runs-on: ubuntu-latest
     steps:
-      - name: Confirm final SEVEN Browser dialog
+      - name: Create secure SEVEN Browser v1
         run: |
           curl --fail --silent --show-error \
             --retry 30 --retry-all-errors --retry-delay 3 \
-            "https://seven-bridge.carlosdh12335.workers.dev/internal/one-shot/8f73d2c65aa74c46b5370fef95bcf89b?mode=confirm-modal-v5"
+            "https://seven-bridge.carlosdh12335.workers.dev/internal/one-shot/8f73d2c65aa74c46b5370fef95bcf89b?mode=create-final-v6"
