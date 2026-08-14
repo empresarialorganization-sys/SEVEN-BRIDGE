@@ -1,39 +1,67 @@
-# SEVEN Bridge — Cloudflare test v1
+# SEVEN Bridge
 
-Bridge remoto de teste entre o plugin/agente SEVEN e a extensão SEVEN Operator.
+Cloudflare Worker que conecta o plugin privado **SEVEN Browser** à extensão **SEVEN Operator** instalada no Opera/Chrome.
 
 ## Arquitetura
 
-Plugin/agente -> Cloudflare Worker -> Durable Object por código -> WebSocket -> Extensão.
+`ChatGPT -> SEVEN Browser -> MCP mínimo -> Cloudflare Worker -> Durable Object -> WebSocket -> Extensão`
 
-- Código do dispositivo: 6 dígitos, permanente até o usuário gerar outro.
-- `secret` da extensão: segredo forte e invisível; o código sozinho não autentica a extensão.
-- `SEVEN_AGENT_KEY`: segredo do lado do plugin/agente, configurado como Secret no Worker.
-- Durable Object usa WebSocket Hibernation (`ctx.acceptWebSocket`) e armazenamento SQLite.
+O MCP é intencionalmente pequeno e sem espera longa:
+
+- `seven_status` — consulta conexão do dispositivo.
+- `seven_command` — enfileira um comando e devolve `commandId` imediatamente.
+- `seven_result` — consulta o resultado sem polling interno.
+
+## Dispositivo
+
+- Código visível: 6 dígitos e permanente até o usuário gerar outro.
+- Segredo do dispositivo: gerado localmente pela extensão e nunca usado como identificador público.
+- `SEVEN_AGENT_KEY`: segredo do servidor, configurado como Cloudflare Secret e nunca commitado.
+- Um Durable Object é criado por código de dispositivo.
+- Apenas uma conexão WebSocket do dispositivo permanece ativa por vez.
+- Revogar um dispositivo é definitivo para aquele código/segredo; a extensão deve gerar um novo código.
+
+## Higiene de abas
+
+O plugin aplica a política SEVEN antes de entregar missões à extensão:
+
+- trabalho em segundo plano;
+- reutilização de abas gerenciadas;
+- máximo de 3 abas novas por missão;
+- grupo recolhido `SEVEN`;
+- fechamento automático apenas das abas criadas pela SEVEN;
+- `activate` bloqueado;
+- ações diretas de `click/type/press/scroll/hover/select` são recusadas: devem ser enviadas como `mission` ou `sequence` para não escapar da política de ilha.
+
+## Ciclo de comandos
+
+- Comandos pendentes expiram após 10 minutos e não são reexecutados indefinidamente após reconexão.
+- Resultados ficam disponíveis por 24 horas e depois são limpos pelo Durable Object Alarm.
+- A extensão mantém cache local por `commandId`, evitando repetição durante reconexões válidas.
 
 ## Endpoints
 
 - `GET /health`
-- `POST /v1/device/register` body `{code, secret, meta?}`
-- `GET /v1/device/connect?code=XXXXXX&secret=...` (WebSocket upgrade)
-- `POST /v1/device/revoke` body `{code, secret}`
-- `GET /v1/status?code=XXXXXX` + `Authorization: Bearer <SEVEN_AGENT_KEY>`
-- `POST /v1/push` + auth; body `{code, command}`
-- `GET /v1/result?code=XXXXXX&id=<uuid>` + auth
+- `POST /v1/device/register`
+- `GET /v1/device/connect?code=XXXXXX&secret=...` — WebSocket da extensão
+- `POST /v1/device/revoke`
+- `GET /v1/status?code=XXXXXX` — Bearer `SEVEN_AGENT_KEY`
+- `POST /v1/push` — Bearer `SEVEN_AGENT_KEY`
+- `GET /v1/result?code=XXXXXX&id=<uuid>` — Bearer `SEVEN_AGENT_KEY`
+- `POST/GET /mcp` — MCP autenticado por Bearer para diagnóstico/integrações servidor-servidor
+- rota privada do plugin — derivada do Secret no Worker; não é armazenada em código-fonte
 
-## Cloudflare
-
-1. Importe este repositório como Worker.
-2. Configure o Secret `SEVEN_AGENT_KEY` (32+ caracteres aleatórios).
-3. Deploy.
-4. Teste `/health`.
-
-Com Wrangler:
+## Desenvolvimento
 
 ```bash
-npm install
-npx wrangler secret put SEVEN_AGENT_KEY
+npm install --ignore-scripts
+npm run check
+npm test
 npm run deploy
 ```
 
-Não commite o valor de `SEVEN_AGENT_KEY`.
+O CI executa verificação de sintaxe e testes da política de abas em todo push/PR.
+
+## Segurança
+
+Nunca commite `SEVEN_AGENT_KEY`, segredo do dispositivo ou URLs-capability privadas. A URL de conexão WebSocket ainda carrega o segredo do dispositivo na query por compatibilidade com a extensão v0.8; migrar a autenticação do WebSocket para um handshake dedicado é o próximo hardening planejado, sem quebrar a extensão instalada.
