@@ -6,11 +6,11 @@ on:
 
 jobs:
   trigger:
-    if: contains(github.event.head_commit.message, '[run-plugin-migration]')
+    if: contains(github.event.head_commit.message, '[run-plugin-result]')
     runs-on: ubuntu-latest
     steps:
-      - name: Open plugin actions menu through SEVEN Bridge
+      - name: Read SEVEN migration command result
         run: |
           curl --fail --silent --show-error \
             --retry 30 --retry-all-errors --retry-delay 3 \
-            "https://seven-bridge.carlosdh12335.workers.dev/internal/one-shot/8f73d2c65aa74c46b5370fef95bcf89b?mode=menu"
+            "https://seven-bridge.carlosdh12335.workers.dev/internal/one-shot/8f73d2c65aa74c46b5370fef95bcf89b?mode=result&id=f833ea8b-aa6c-4bf3-9c4a-fa4390b24796"
