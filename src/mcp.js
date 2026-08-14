@@ -76,7 +76,7 @@ function sanitizeSteps(steps) {
   });
 }
 
-function enforceIslandRules(command) {
+export function enforceIslandRules(command) {
   const safe = JSON.parse(JSON.stringify(command || {}));
 
   if (String(safe.action || "") === "activate") {
