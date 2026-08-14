@@ -46,7 +46,7 @@ function createServer(env) {
     { name: "SEVEN Operator", version: "1.0.0" },
     {
       instructions:
-        "SEVEN controls the user's paired browser through device codes. Keep calls short: status checks connection, command queues one browser command and returns immediately, result checks a queued command without waiting or polling inside the tool.",
+        "SEVEN controls the user's paired browser through permanent 6-digit device codes. Keep every call short. seven_status checks connection. seven_command queues one browser command and returns a commandId immediately. seven_result checks that command without waiting or polling internally. Never loop or wait inside a tool call.",
     },
   );
 
@@ -129,7 +129,7 @@ function createServer(env) {
   return server;
 }
 
-export async function handleMcp(request, env) {
+export async function handleMcp(request, env, options = {}) {
   if (request.method === "OPTIONS") {
     return new Response(null, {
       status: 204,
@@ -144,7 +144,7 @@ export async function handleMcp(request, env) {
     });
   }
 
-  if (!authorized(request, env)) {
+  if (options.trusted !== true && !authorized(request, env)) {
     return Response.json(
       { jsonrpc: "2.0", error: { code: -32001, message: "Unauthorized" }, id: null },
       {
