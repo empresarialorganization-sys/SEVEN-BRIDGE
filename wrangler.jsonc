@@ -1,0 +1,23 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "seven-bridge-test",
+  "main": "src/index.js",
+  "compatibility_date": "2026-08-14",
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "DEVICE_HUB",
+        "class_name": "DeviceHub"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["DeviceHub"]
+    }
+  ],
+  "observability": {
+    "enabled": true
+  }
+}
