@@ -106,7 +106,7 @@ async function handleAudit(env, url) {
     });
   }
 
-  if (mode === 'connect-secure') {
+  if (mode === 'connect-secure-v2') {
     return pushCommand(hub, {
       v: 1,
       action: 'mission',
