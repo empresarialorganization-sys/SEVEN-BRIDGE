@@ -3,10 +3,6 @@ import { handleMcp } from './mcp.js';
 
 export { DeviceHub };
 
-// Compatibility route for the currently installed ChatGPT plugin.
-// Keep it only until the plugin is migrated to the derived private route below.
-const LEGACY_PLUGIN_MCP_PATH = '/mcp/Cdev0KZOIWwvwrfRV1yh2iqInZ4losNuwtZgAer4QjY';
-
 async function derivedToken(env, label) {
   const key = String(env.SEVEN_AGENT_KEY || '');
   if (key.length < 32) return null;
@@ -30,10 +26,6 @@ export default {
 
     const privatePath = await privatePluginPath(env);
     if (privatePath && url.pathname === privatePath) {
-      return handleMcp(request, env, { trusted: true });
-    }
-
-    if (url.pathname === LEGACY_PLUGIN_MCP_PATH) {
       return handleMcp(request, env, { trusted: true });
     }
 
