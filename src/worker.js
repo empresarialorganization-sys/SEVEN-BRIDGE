@@ -91,7 +91,7 @@ async function handleAudit(env, url) {
       target: { urlPrefix: 'https://chatgpt.com/plugins' },
       tabPolicy: migrationPolicy(),
       steps: [
-        { action: 'click', locator: { role: 'button', name: 'SEVEN Browser', exact: true }, note: 'Open the only remaining secure SEVEN Browser draft' },
+        { action: 'click', locator: { role: 'button', name: 'SEVEN Browser', exact: true } },
         { action: 'sleep', args: { ms: 800 } },
         { action: 'click', locator: { role: 'button', name: 'Conectar', exact: false } },
         { action: 'sleep', args: { ms: 1200 } },
@@ -114,6 +114,20 @@ async function handleAudit(env, url) {
         { action: 'sleep', args: { ms: 1200 } },
       ],
       maxRuntimeMs: 12000,
+    });
+  }
+
+  if (mode === 'confirm-modal-v5') {
+    return pushCommand(hub, {
+      v: 1,
+      action: 'mission',
+      target: { urlPrefix: 'https://chatgpt.com/plugins' },
+      tabPolicy: migrationPolicy(),
+      steps: [
+        { action: 'click', locator: { role: 'button', name: 'Conectar', exact: true }, note: 'Confirm final Add SEVEN Browser dialog' },
+        { action: 'sleep', args: { ms: 1500 } },
+      ],
+      maxRuntimeMs: 8000,
     });
   }
 
