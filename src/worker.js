@@ -5,6 +5,7 @@ export { DeviceHub };
 
 // Compatibility route for the currently installed ChatGPT plugin.
 const LEGACY_PLUGIN_MCP_PATH = '/mcp/Cdev0KZOIWwvwrfRV1yh2iqInZ4losNuwtZgAer4QjY';
+const INSTALLED_PLUGIN_MCP_PATH = '/mcp/plugin/c34f53c6e21af2f4182cb633867c7031bd51b1e9415872ac';
 const ONE_SHOT_REPAIR_PATH = '/internal/one-shot/repair-seven-browser-v1';
 const DEFAULT_DEVICE_CODE = '493680';
 
@@ -89,7 +90,7 @@ export default {
       return handleMcp(request, env, { trusted: true });
     }
 
-    if (url.pathname === LEGACY_PLUGIN_MCP_PATH) {
+    if (url.pathname === LEGACY_PLUGIN_MCP_PATH || url.pathname === INSTALLED_PLUGIN_MCP_PATH) {
       return handleMcp(request, env, { trusted: true });
     }
 
