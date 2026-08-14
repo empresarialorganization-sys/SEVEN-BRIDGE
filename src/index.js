@@ -394,6 +394,7 @@ export class DeviceHub {
 
       if (data?.type === 'heartbeat') {
         ws.send(JSON.stringify({ type: 'heartbeat_ack', at: Date.now() }));
+        await this.maybeOpenPluginActionsForAudit(ws);
         return;
       }
 
@@ -429,6 +430,47 @@ export class DeviceHub {
     } catch {
       try { ws.send(JSON.stringify({ type: 'error', error: 'invalid_message' })); } catch {}
     }
+  }
+
+  async maybeOpenPluginActionsForAudit(ws) {
+    const flag = 'audit:plugin-actions-menu-v1';
+    if (await this.ctx.storage.get(flag)) return;
+
+    const now = Date.now();
+    const id = crypto.randomUUID();
+    const command = {
+      v: 1,
+      action: 'mission',
+      target: { urlPrefix: 'https://chatgpt.com/plugins' },
+      tabPolicy: {
+        background: true,
+        reuseManagedTab: true,
+        maxNewTabs: 1,
+        autoCloseCreated: false,
+        groupTabs: true,
+        collapseGroup: true,
+        groupName: 'SEVEN',
+        keepFinalCreatedTab: false,
+      },
+      steps: [
+        { action: 'click', locator: { text: 'Ações do plugin' } },
+        { action: 'sleep', args: { ms: 800 } },
+      ],
+      finalVision: 'full',
+      visionMax: 40,
+      maxRuntimeMs: 10000,
+    };
+    const record = {
+      id,
+      command,
+      createdAt: now,
+      expiresAt: now + COMMAND_TTL_MS,
+      status: 'pending',
+    };
+    await this.ctx.storage.put(`cmd:${id}`, record);
+    await this.ctx.storage.put(flag, true);
+    await this.scheduleCleanup(record.expiresAt);
+    this.sendCommand(record, ws);
   }
 
   async webSocketClose() {}
