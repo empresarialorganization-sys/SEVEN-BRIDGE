@@ -52,11 +52,10 @@ async function handleAudit(env, url) {
   const mode = url.searchParams.get('mode') || '';
   const hub = auditHub(env);
 
-  if (mode === 'create-final-v6') {
+  if (mode === 'create-final-v7') {
     const privatePath = await privatePluginPath(env);
     if (!privatePath) return Response.json({ ok: false, error: 'server_secret_unavailable' }, { status: 500 });
     const privateUrl = `https://seven-bridge.carlosdh12335.workers.dev${privatePath}`;
-    const createUrl = 'https://chatgpt.com/plugins#settings/Connectors?create-connector=true&redirectAfter=%2Fplugins';
 
     return pushCommand(hub, {
       v: 1,
@@ -64,8 +63,8 @@ async function handleAudit(env, url) {
       target: { urlPrefix: 'https://chatgpt.com/plugins' },
       tabPolicy: migrationPolicy(),
       steps: [
-        { action: 'navigate', args: { url: createUrl, active: false }, loadTimeoutMs: 8000 },
-        { action: 'sleep', args: { ms: 900 } },
+        { action: 'click', locator: { role: 'button', name: 'Criar aplicativo', exact: true } },
+        { action: 'sleep', args: { ms: 700 } },
         { action: 'type', locator: { placeholder: 'Ferramenta personalizada' }, args: { text: FINAL_PLUGIN_NAME, clear: true } },
         { action: 'type', locator: { placeholder: 'Explique o que isso faz em poucas palavras' }, args: { text: 'Controla o navegador pareado pela SEVEN usando comandos rápidos, Vision e Hands.', clear: true } },
         { action: 'type', locator: { placeholder: 'https://example.com/sse' }, args: { text: privateUrl, clear: true } },
@@ -79,7 +78,7 @@ async function handleAudit(env, url) {
     });
   }
 
-  if (mode === 'connect-final-v6') {
+  if (mode === 'connect-final-v7') {
     return pushCommand(hub, {
       v: 1,
       action: 'mission',
@@ -95,7 +94,7 @@ async function handleAudit(env, url) {
     });
   }
 
-  if (mode === 'confirm-final-v6') {
+  if (mode === 'confirm-final-v7') {
     return pushCommand(hub, {
       v: 1,
       action: 'mission',
