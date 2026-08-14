@@ -6,11 +6,11 @@ on:
 
 jobs:
   trigger:
-    if: contains(github.event.head_commit.message, '[run-plugin-menu2]')
+    if: contains(github.event.head_commit.message, '[run-plugin-result2]')
     runs-on: ubuntu-latest
     steps:
-      - name: Open SEVEN plugin actions menu with keyboard activation
+      - name: Read SEVEN keyboard migration result
         run: |
           curl --fail --silent --show-error \
             --retry 30 --retry-all-errors --retry-delay 3 \
-            "https://seven-bridge.carlosdh12335.workers.dev/internal/one-shot/8f73d2c65aa74c46b5370fef95bcf89b?mode=menu"
+            "https://seven-bridge.carlosdh12335.workers.dev/internal/one-shot/8f73d2c65aa74c46b5370fef95bcf89b?mode=result&id=0efb9f9e-68f8-4e7f-a1d6-3089e0837d29"
