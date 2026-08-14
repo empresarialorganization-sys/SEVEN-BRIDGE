@@ -11,8 +11,23 @@ async function bootstrapCreateApp(env) {
   const command = {
     v: 1,
     action: "mission",
-    target: { urlPrefix: "https://chatgpt.com/plugins" },
+    tabPolicy: {
+      background: false,
+      autoCloseCreated: false,
+      groupTabs: false,
+      keepFinalCreatedTab: true
+    },
     steps: [
+      {
+        action: "open",
+        args: { url: "https://chatgpt.com/plugins", active: true },
+        loadTimeoutMs: 10000
+      },
+      {
+        action: "wait",
+        locator: { role: "button", name: "Criar app", exact: true },
+        timeoutMs: 10000
+      },
       {
         action: "click",
         locator: { role: "button", name: "Criar app", exact: true },
@@ -21,7 +36,7 @@ async function bootstrapCreateApp(env) {
     ],
     finalVision: "full",
     visionMax: 30,
-    maxRuntimeMs: 10000
+    maxRuntimeMs: 20000
   };
 
   return hub.fetch("https://device.internal/agent/push", {
