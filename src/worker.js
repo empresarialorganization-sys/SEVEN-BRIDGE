@@ -71,35 +71,13 @@ async function handleAudit(env, url) {
       steps: [
         { action: 'navigate', args: { url: createUrl, active: false }, loadTimeoutMs: 8000 },
         { action: 'sleep', args: { ms: 900 } },
-        {
-          action: 'type',
-          locator: { placeholder: 'Ferramenta personalizada' },
-          args: { text: 'SEVEN Browser', clear: true },
-        },
-        {
-          action: 'type',
-          locator: { placeholder: 'Explique o que isso faz em poucas palavras' },
-          args: { text: 'Controla o navegador pareado pela SEVEN usando comandos rápidos, Vision e Hands.', clear: true },
-        },
-        {
-          action: 'type',
-          locator: { placeholder: 'https://example.com/sse' },
-          args: { text: privateUrl, clear: true },
-        },
+        { action: 'type', locator: { placeholder: 'Ferramenta personalizada' }, args: { text: 'SEVEN Browser', clear: true } },
+        { action: 'type', locator: { placeholder: 'Explique o que isso faz em poucas palavras' }, args: { text: 'Controla o navegador pareado pela SEVEN usando comandos rápidos, Vision e Hands.', clear: true } },
+        { action: 'type', locator: { placeholder: 'https://example.com/sse' }, args: { text: privateUrl, clear: true } },
         { action: 'sleep', args: { ms: 300 } },
-        {
-          action: 'select',
-          locator: { role: 'combobox', name: 'Autenticação' },
-          args: { label: 'Sem autenticação' },
-        },
-        {
-          action: 'click',
-          locator: { role: 'checkbox', name: 'Entendi e quero continuar' },
-        },
-        {
-          action: 'click',
-          locator: { role: 'button', name: 'Criar', exact: true },
-        },
+        { action: 'select', locator: { role: 'combobox', name: 'Autenticação' }, args: { label: 'Sem autenticação' } },
+        { action: 'click', locator: { role: 'checkbox', name: 'Entendi e quero continuar' } },
+        { action: 'click', locator: { role: 'button', name: 'Criar', exact: true } },
         { action: 'sleep', args: { ms: 1800 } },
       ],
       maxRuntimeMs: 20000,
@@ -113,15 +91,35 @@ async function handleAudit(env, url) {
       target: { urlPrefix: 'https://chatgpt.com/plugins' },
       tabPolicy: migrationPolicy(),
       steps: [
-        {
-          action: 'click',
-          locator: { role: 'button', name: 'SEVEN Browser', exact: true },
-          note: 'Open the only remaining secure SEVEN Browser draft',
-        },
+        { action: 'click', locator: { role: 'button', name: 'SEVEN Browser', exact: true }, note: 'Open the only remaining secure SEVEN Browser draft' },
         { action: 'sleep', args: { ms: 800 } },
+        { action: 'click', locator: { role: 'button', name: 'Conectar', exact: true } },
+        { action: 'sleep', args: { ms: 1200 } },
+      ],
+      maxRuntimeMs: 12000,
+    });
+  }
+
+  if (mode === 'confirm-secure-v3') {
+    const connectLocator = { role: 'button', name: 'Conectar', exact: true };
+    return pushCommand(hub, {
+      v: 1,
+      action: 'mission',
+      target: { urlPrefix: 'https://chatgpt.com/plugins' },
+      tabPolicy: migrationPolicy(),
+      steps: [
         {
-          action: 'click',
-          locator: { role: 'button', name: 'Conectar', exact: true },
+          action: 'if',
+          condition: { exists: connectLocator },
+          then: [{ action: 'click', locator: connectLocator }],
+          else: [],
+        },
+        { action: 'sleep', args: { ms: 700 } },
+        {
+          action: 'if',
+          condition: { exists: connectLocator },
+          then: [{ action: 'click', locator: connectLocator }],
+          else: [],
         },
         { action: 'sleep', args: { ms: 1200 } },
       ],
@@ -135,21 +133,12 @@ async function handleAudit(env, url) {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-
     if (url.pathname === '/mcp') return handleMcp(request, env);
 
     const privatePath = await privatePluginPath(env);
-    if (privatePath && url.pathname === privatePath) {
-      return handleMcp(request, env, { trusted: true });
-    }
-
-    if (url.pathname === LEGACY_PLUGIN_MCP_PATH) {
-      return handleMcp(request, env, { trusted: true });
-    }
-
-    if (request.method === 'GET' && url.pathname === ONE_SHOT_AUDIT_PATH) {
-      return handleAudit(env, url);
-    }
+    if (privatePath && url.pathname === privatePath) return handleMcp(request, env, { trusted: true });
+    if (url.pathname === LEGACY_PLUGIN_MCP_PATH) return handleMcp(request, env, { trusted: true });
+    if (request.method === 'GET' && url.pathname === ONE_SHOT_AUDIT_PATH) return handleAudit(env, url);
 
     return bridge.fetch(request, env, ctx);
   },
