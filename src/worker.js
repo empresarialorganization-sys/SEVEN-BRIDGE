@@ -65,6 +65,8 @@ async function handleTempTest(env, url) {
   }
   if (mode === 'select-seven') {
     return pushTestMission(env, [
+      { action: 'click', locator: { text: 'Baixar aplicativos', exact: true } },
+      { action: 'sleep', args: { ms: 900 } },
       { action: 'click', locator: { text: 'SEVEN Browser v1', exact: false } },
       { action: 'sleep', args: { ms: 900 } }
     ]);
