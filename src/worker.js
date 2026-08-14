@@ -38,10 +38,11 @@ async function runHiddenGoogleTest(env) {
         args: { text: "SEVEN modo fantasma funcionando", clear: true },
         timeoutMs: 7000,
       },
+      { action: "sleep", args: { ms: 20000 } },
     ],
     finalVision: "full",
     visionMax: 12,
-    maxRuntimeMs: 20000,
+    maxRuntimeMs: 30000,
   });
 
   return hubFor(env, "493680").fetch("https://device.internal/agent/push", {
