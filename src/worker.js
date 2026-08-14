@@ -93,34 +93,24 @@ async function handleAudit(env, url) {
       steps: [
         { action: 'click', locator: { role: 'button', name: 'SEVEN Browser', exact: true }, note: 'Open the only remaining secure SEVEN Browser draft' },
         { action: 'sleep', args: { ms: 800 } },
-        { action: 'click', locator: { role: 'button', name: 'Conectar', exact: true } },
+        { action: 'click', locator: { role: 'button', name: 'Conectar', exact: false } },
         { action: 'sleep', args: { ms: 1200 } },
       ],
       maxRuntimeMs: 12000,
     });
   }
 
-  if (mode === 'confirm-secure-v3') {
-    const connectLocator = { role: 'button', name: 'Conectar', exact: true };
+  if (mode === 'confirm-secure-v4') {
+    const connectLocator = { role: 'button', name: 'Conectar', exact: false };
     return pushCommand(hub, {
       v: 1,
       action: 'mission',
       target: { urlPrefix: 'https://chatgpt.com/plugins' },
       tabPolicy: migrationPolicy(),
       steps: [
-        {
-          action: 'if',
-          condition: { exists: connectLocator },
-          then: [{ action: 'click', locator: connectLocator }],
-          else: [],
-        },
+        { action: 'click', locator: connectLocator },
         { action: 'sleep', args: { ms: 700 } },
-        {
-          action: 'if',
-          condition: { exists: connectLocator },
-          then: [{ action: 'click', locator: connectLocator }],
-          else: [],
-        },
+        { action: 'if', condition: { exists: connectLocator }, then: [{ action: 'click', locator: connectLocator }], else: [] },
         { action: 'sleep', args: { ms: 1200 } },
       ],
       maxRuntimeMs: 12000,
