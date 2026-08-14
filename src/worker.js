@@ -115,11 +115,17 @@ async function handleAudit(env, url) {
       steps: [
         {
           action: 'click',
+          locator: { role: 'button', name: 'SEVEN Browser', exact: true },
+          note: 'Open the only remaining secure SEVEN Browser draft',
+        },
+        { action: 'sleep', args: { ms: 800 } },
+        {
+          action: 'click',
           locator: { role: 'button', name: 'Conectar', exact: true },
         },
         { action: 'sleep', args: { ms: 1200 } },
       ],
-      maxRuntimeMs: 10000,
+      maxRuntimeMs: 12000,
     });
   }
 
