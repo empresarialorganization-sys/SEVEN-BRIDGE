@@ -6,7 +6,8 @@ PLANO LUCIDES — SEVEN-BRIDGE
 [x] 5. Validar CI, publicar Bridge 1.0.1 e confirmar Cloudflare sem desativar a instalação atual.
 [x] 6. Verificar o protocolo real do SEVEN Operator v0.8 instalado e isolar a causa de “Comando live inválido”.
 [x] 7. Normalizar comandos no Bridge para protocolo live v1 antes do WebSocket, preservando compatibilidade com a extensão instalada.
-→ 8. Validar CI, publicar Bridge 1.0.2 e confirmar saúde do Worker antes do teste ponta a ponta em outro chat.
+[x] 8. Validar CI, publicar Bridge 1.0.2 e confirmar saúde do Worker.
+→ 9. Validar ponta a ponta em outro chat: status, vision, mission e result; só depois remover compatibilidade comprovadamente obsoleta.
 
 REGRAS ATUAIS
 - Não desativar nem quebrar o SEVEN Browser v1 atualmente instalado durante esta mudança.
