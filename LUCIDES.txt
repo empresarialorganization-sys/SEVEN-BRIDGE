@@ -5,18 +5,23 @@ PLANO LUCIDES — SEVEN-BRIDGE / SevenEx 1.1.0
 [x] 4. Verificar no Bridge que o DeviceHub pertence à session_id resolvida antes de aceitar comandos.
 [x] 5. Fixar contrato SevenEx/Bridge/Operator 1.1.0, protocolo 1 e capacidades obrigatórias.
 [x] 6. Preservar somente a rota de compatibilidade ainda consumida pelo app instalado atual.
-[x] 7. Adicionar testes contra mistura de sessão/device, device global no MCP e versão incompatível.
-→ 8. Validar CI da branch e revisão do diff.
-[ ] 9. Publicar depois que schema/API de binding do Core estiverem vivos e validados.
-[ ] 10. Validar E2E multiusuário e remover a última compatibilidade somente com zero consumidores.
+[x] 7. Implementar OAuth Resource Server no Bridge: metadata, JWKS, issuer, client_id e audience do SevenEx.
+[x] 8. Remover token passthrough: OAuth bearer termina no Bridge; binding do Core usa HMAC permanente serviço-a-serviço.
+→ 9. Validar CI da branch depois da fronteira OAuth final.
+[ ] 10. Confirmar SEVEN_OPERATOR_SHARED_SECRET configurado no Bridge e Core sem expor valor.
+[ ] 11. Publicar somente depois de migrations, OAuth Server e Custom Access Token Hook estarem ativos no Supabase.
+[ ] 12. Validar E2E multiusuário e remover a última compatibilidade somente com zero consumidores.
 
 REGRAS ATUAIS
 - SevenEx é apenas a porta fina de ChatGPT/Codex; inteligência e identidade não ficam no MCP.
-- O caminho canônico é conta autenticada -> workspace -> browser ativo explícito -> session_id/device_code -> DeviceHub -> WebSocket -> Operator.
+- O caminho canônico é OAuth SevenEx -> Bridge valida JWT/audience -> HMAC interno -> Core resolve workspace/browser -> session_id/device_code -> DeviceHub -> WebSocket -> Operator.
+- Token OAuth de usuário nunca é repassado ao Core nem a outro serviço.
+- O recurso OAuth canônico é o endpoint /mcp do SevenEx; token com audience genérica ou diferente deve ser negado.
 - Nunca selecionar dispositivo por “último visto” quando houver mais de um browser vinculado.
 - device_code identifica execução, não identidade de usuário, e nunca entra no schema das tools do SevenEx.
 - O Bridge deve negar quando a session_id registrada no DeviceHub não corresponder ao binding resolvido pelo Core.
 - SevenEx/Bridge/Operator usam release 1.1.0; protocolo e capacidades incompatíveis bloqueiam comando com atualização requerida.
+- SEVEN_OPERATOR_SHARED_SECRET é segredo permanente serviço-a-serviço; nunca colocar valor no Git, logs, docs ou resposta.
 - O app instalado anterior permanece funcional apenas durante a migração; sua rota/device de compatibilidade não é modelo para novos usuários.
 - Não criar rota, token, workflow ou endpoint temporário de diagnóstico.
 - Não expor segredo de serviço, segredo do device ou URL privada de capacidade em Git, logs, docs ou resposta.
