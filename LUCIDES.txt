@@ -1,9 +1,9 @@
 PLANO LUCIDES — SEVEN-BRIDGE
-→ 1. Desacoplar a URL estável do MCP de SEVEN_AGENT_KEY.
-[ ] 2. Preservar o SEVEN Browser v1 instalado e compatibilidade durante a migração.
-[ ] 3. Preparar autenticação por usuário sem senha bruta no Bridge e sem dispositivo global hardcoded no caminho multiusuário.
-[ ] 4. Adicionar testes de rotação da chave interna, isolamento e regressão das ilhas.
-[ ] 5. Validar CI, deploy e uso a partir de outro chat antes de remover qualquer compatibilidade.
+[x] 1. Desacoplar a URL estável do MCP de SEVEN_AGENT_KEY.
+[x] 2. Preservar o SEVEN Browser v1 instalado e compatibilidade durante a migração.
+[x] 3. Fixar a fronteira multiusuário: conta/senha no Core; senha bruta nunca no Bridge; SEVEN_AGENT_KEY somente serviço.
+[x] 4. Adicionar testes contra rota derivada da chave, rotas temporárias e regressão das ilhas.
+→ 5. Validar CI final, publicar, confirmar Cloudflare e uso do plugin sem desativar a instalação atual.
 
 REGRAS ATUAIS
 - Não desativar nem quebrar o SEVEN Browser v1 atualmente instalado durante esta mudança.
@@ -11,6 +11,7 @@ REGRAS ATUAIS
 - SEVEN_AGENT_KEY é segredo interno de serviço; não é senha de usuário e não deve aparecer em URL, Git, logs ou resposta.
 - Cada usuário deve autenticar pela própria conta SEVEN; senha bruta não é armazenada nem validada pelo Bridge.
 - O caminho multiusuário deve resolver o dispositivo do usuário autenticado e nunca misturar usuários, sessões ou dispositivos.
+- As rotas de compatibilidade existentes servem somente para preservar a instalação atual durante a migração; não devem ser copiadas como modelo de novos usuários.
 - Manter compatibilidade existente até a substituição passar em teste ponta a ponta; só então remover o que ficou comprovadamente obsoleto.
 - Não criar rota, token, workflow ou endpoint temporário para diagnóstico.
 - Preservar política de ilhas: background-first, sem ativar abas, reutilização de abas gerenciadas e fechamento apenas de abas criadas pela SEVEN.
