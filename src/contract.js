@@ -1,5 +1,5 @@
 export const SEVENEX_PROTOCOL_VERSION = 1;
-export const SEVENEX_MIN_OPERATOR_VERSION = '0.11.0';
+export const SEVENEX_MIN_OPERATOR_VERSION = '1.1.0';
 export const SEVENEX_REQUIRED_CAPABILITIES = ['vision', 'visionDiff', 'mission', 'collectImages'];
 
 function parts(value) {
