@@ -1,10 +1,10 @@
 PLANO LUCIDES — RETOMADA / SevenEx 1.1.0
 [x] Arquitetura, migrations, hardening e CI fechados.
-→ 1. Remover o gate do SEVEN_OPERATOR_SHARED_SECRET sem expor valor.
-[ ] 2. Remover o gate do OAuth Server + sevenex_access_token_hook.
-[ ] 3. Preparar/publicar o SevenEx + Operator 1.1.0.
-[ ] 4. Rodar E2E multiusuário/workspace/browser.
-[ ] 5. Remover legado sem consumidores e fechar publicação.
+[ ] 1. BLOQUEADO — remover o gate do SEVEN_OPERATOR_SHARED_SECRET sem expor valor; falta configurar o mesmo segredo no Vercel Production e Cloudflare/Bridge.
+[ ] 2. BLOQUEADO — remover o gate do OAuth Server + sevenex_access_token_hook; a função existe no banco, falta habilitação administrativa no Auth.
+[ ] 3. PREPARO CONCLUÍDO / PUBLICAÇÃO BLOQUEADA pelos itens 1 e 2: SevenEx e Operator 1.1.0 estão prontos para publicação.
+[ ] 4. Rodar E2E multiusuário/workspace/browser após publicação real.
+[ ] 5. Remover legado sem consumidores e fechar publicação somente após E2E.
 
 DETALHES JÁ CONCLUÍDOS
 [x] URL MCP estável e independente de segredo de serviço.
@@ -15,7 +15,10 @@ DETALHES JÁ CONCLUÍDOS
 [x] OAuth Resource Server no Bridge com metadata, JWKS, issuer, client_id e audience do SevenEx.
 [x] OAuth bearer termina no Bridge; Bridge -> Core usa HMAC serviço-a-serviço.
 [x] Migrations SevenEx de browser ativo, multiworkspace e função sevenex_access_token_hook aplicadas no Supabase vivo.
-[x] CI técnico verde no Core e Bridge.
+[x] chatgpt-app-submission.json criado para SevenEx com 3 tools, 5 testes positivos e 3 negativos.
+[x] CI Bridge run 62 verde após o pacote de submissão.
+[x] Operator 1.1.0 possui ZIP canônico validado pelo workflow Package SEVEN Operator.
+[x] CI técnico atual do Core verde depois da remoção do bootstrap por hash e ajuste do validator.
 
 REGRAS ATUAIS
 - SevenEx é apenas a porta fina de ChatGPT/Codex; inteligência e identidade não ficam no MCP.
@@ -27,6 +30,7 @@ REGRAS ATUAIS
 - SEVEN_OPERATOR_SHARED_SECRET é segredo permanente serviço-a-serviço; nunca colocar valor no Git, logs, docs ou resposta.
 - O hook sevenex_access_token_hook já existe no banco, mas só atua quando habilitado administrativamente no Auth junto do OAuth Server.
 - O app/extensão instalados anteriores permanecem funcionais durante a migração até o SevenEx/Operator 1.1.0 passarem E2E.
+- O pacote de submissão é metadata do mesmo SevenEx; não cria outro plugin, Bridge, MCP ou extensão.
 - Não criar rota, token, workflow ou endpoint temporário de diagnóstico.
 - Não expor segredo de serviço, segredo do device ou URL privada de capacidade em Git, logs, docs ou resposta.
 - Preservar política de ilhas: background-first, reutilização de abas gerenciadas, foco protegido e fechamento apenas das abas criadas pela SEVEN.
