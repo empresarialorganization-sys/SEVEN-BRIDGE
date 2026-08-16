@@ -46,18 +46,18 @@ function textResult(data, isError = false) {
 
 function createServer(env) {
   const server = new McpServer(
-    { name: 'SEVEN Browser v1', version: MCP_VERSION },
+    { name: 'SevenEx', version: MCP_VERSION },
     {
       instructions:
-        'This private SEVEN Browser v1 plugin is permanently bound to the user\'s default browser device. Never ask the user for a device code and never mention pairing unless the device is actually disconnected. seven_status checks the default browser connection. seven_command queues one browser command and returns a commandId immediately. seven_result checks that command without waiting or polling internally. Never loop or wait inside a tool call. Every browser command must name an action; the server canonicalizes the live envelope to protocol v1 before delivery. For actions that change a page, use mission or sequence so the server can enforce SEVEN island rules. Automation-created tabs stay in the background, reuse SEVEN-managed tabs, are grouped into a collapsed SEVEN island, never activate in front of the user, and only SEVEN-created temporary tabs are auto-closed.',
+        'SevenEx is a thin browser transport. It exposes only status, command and result. Do not move account logic, memory, AI orchestration, product routing or user passwords into this MCP. seven_status checks the current browser connection. seven_command queues exactly one command and returns a commandId immediately. seven_result reads that command result without internal polling. Browser mutations must use mission or sequence so the Bridge can enforce island rules.',
     },
   );
 
   server.registerTool(
     'seven_status',
     {
-      title: 'SEVEN browser status',
-      description: 'Check whether the user\'s default SEVEN browser is connected. No device code is required.',
+      title: 'SevenEx status',
+      description: 'Check whether the current SevenEx browser device is connected.',
       inputSchema: z.object({}),
       annotations: {
         readOnlyHint: true,
@@ -76,11 +76,11 @@ function createServer(env) {
   server.registerTool(
     'seven_command',
     {
-      title: 'Send SEVEN browser command',
+      title: 'SevenEx command',
       description:
-        'Queue exactly one command for the user\'s default SEVEN browser and return a commandId immediately. No device code is required. The command must include an action such as vision, read, mission, or sequence; protocol v:1 is filled automatically if omitted. Never wait for browser completion inside this tool. Use seven_result separately. For click/type/press/scroll/hover/select, send a mission or sequence; direct mutating actions are rejected so the island policy cannot be bypassed.',
+        'Queue exactly one browser command and return a commandId immediately. The Bridge canonicalizes protocol v1 and applies island rules. Use seven_result separately.',
       inputSchema: z.object({
-        command: z.record(z.string(), z.unknown()).describe('SEVEN extension command envelope with an action.'),
+        command: z.record(z.string(), z.unknown()).describe('SEVEN browser command envelope with an action.'),
       }),
       annotations: {
         readOnlyHint: false,
@@ -113,9 +113,8 @@ function createServer(env) {
   server.registerTool(
     'seven_result',
     {
-      title: 'Read SEVEN command result',
-      description:
-        'Check the current result of a previously queued SEVEN browser command on the default device. Returns pending, completed, or expired immediately; never waits or polls internally. No device code is required.',
+      title: 'SevenEx result',
+      description: 'Read the current result of a queued SevenEx command without waiting or polling internally.',
       inputSchema: z.object({
         commandId: z.string().regex(UUID_RE).describe('commandId returned by seven_command.'),
       }),
