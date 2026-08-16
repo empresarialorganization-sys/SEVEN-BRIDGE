@@ -1,5 +1,6 @@
 import { McpServer, WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/server';
 import { z } from 'zod';
+import { normalizeLiveCommand } from './command.js';
 import { enforceIslandRules } from './policy.js';
 import { MCP_VERSION } from './version.js';
 
@@ -48,7 +49,7 @@ function createServer(env) {
     { name: 'SEVEN Browser v1', version: MCP_VERSION },
     {
       instructions:
-        'This private SEVEN Browser v1 plugin is permanently bound to the user\'s default browser device. Never ask the user for a device code and never mention pairing unless the device is actually disconnected. seven_status checks the default browser connection. seven_command queues one browser command and returns a commandId immediately. seven_result checks that command without waiting or polling internally. Never loop or wait inside a tool call. For actions that change a page, use mission or sequence so the server can enforce SEVEN island rules. Automation-created tabs stay in the background, reuse SEVEN-managed tabs, are grouped into a collapsed SEVEN island, never activate in front of the user, and only SEVEN-created temporary tabs are auto-closed.',
+        'This private SEVEN Browser v1 plugin is permanently bound to the user\'s default browser device. Never ask the user for a device code and never mention pairing unless the device is actually disconnected. seven_status checks the default browser connection. seven_command queues one browser command and returns a commandId immediately. seven_result checks that command without waiting or polling internally. Never loop or wait inside a tool call. Every browser command must name an action; the server canonicalizes the live envelope to protocol v1 before delivery. For actions that change a page, use mission or sequence so the server can enforce SEVEN island rules. Automation-created tabs stay in the background, reuse SEVEN-managed tabs, are grouped into a collapsed SEVEN island, never activate in front of the user, and only SEVEN-created temporary tabs are auto-closed.',
     },
   );
 
@@ -77,9 +78,9 @@ function createServer(env) {
     {
       title: 'Send SEVEN browser command',
       description:
-        'Queue exactly one command for the user\'s default SEVEN browser and return a commandId immediately. No device code is required. Never wait for browser completion inside this tool. Use seven_result separately. For click/type/press/scroll/hover/select, send a mission or sequence; direct mutating actions are rejected so the island policy cannot be bypassed.',
+        'Queue exactly one command for the user\'s default SEVEN browser and return a commandId immediately. No device code is required. The command must include an action such as vision, read, mission, or sequence; protocol v:1 is filled automatically if omitted. Never wait for browser completion inside this tool. Use seven_result separately. For click/type/press/scroll/hover/select, send a mission or sequence; direct mutating actions are rejected so the island policy cannot be bypassed.',
       inputSchema: z.object({
-        command: z.record(z.string(), z.unknown()).describe('SEVEN extension command envelope.'),
+        command: z.record(z.string(), z.unknown()).describe('SEVEN extension command envelope with an action.'),
       }),
       annotations: {
         readOnlyHint: false,
@@ -91,7 +92,7 @@ function createServer(env) {
     async ({ command }) => {
       let safeCommand;
       try {
-        safeCommand = enforceIslandRules(command);
+        safeCommand = enforceIslandRules(normalizeLiveCommand(command));
       } catch (error) {
         return textResult(
           { ok: false, error: error instanceof Error ? error.message : 'island_policy_error' },
