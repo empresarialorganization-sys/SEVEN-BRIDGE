@@ -3,6 +3,7 @@
   "name": "seven-bridge",
   "main": "src/worker.js",
   "compatibility_date": "2026-08-14",
+  "compatibility_flags": ["nodejs_compat"],
   "durable_objects": {
     "bindings": [
       {

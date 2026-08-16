@@ -1,30 +1,15 @@
 import { McpServer, WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/server';
 import { z } from 'zod';
+import { normalizeDeviceCode } from './device-binding.js';
 import { enforceIslandRules } from './policy.js';
+import { isAgentRequest } from './security.js';
 import { MCP_VERSION } from './version.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const DEFAULT_DEVICE_CODE = '493680';
+export const DEFAULT_DEVICE_CODE = '493680';
 
-function defaultHub(env) {
-  const id = env.DEVICE_HUB.idFromName(`device:${DEFAULT_DEVICE_CODE}`);
-  return env.DEVICE_HUB.get(id);
-}
-
-function constantTimeEqual(a, b) {
-  a = String(a || '');
-  b = String(b || '');
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
-}
-
-function authorized(request, env) {
-  const configured = String(env.SEVEN_AGENT_KEY || '');
-  if (configured.length < 32) return false;
-  const auth = request.headers.get('authorization') || '';
-  return auth.startsWith('Bearer ') && constantTimeEqual(auth.slice(7), configured);
+function hubFor(env, code) {
+  return env.DEVICE_HUB.getByName(`device:${code}`);
 }
 
 async function responseJson(response) {
@@ -43,12 +28,13 @@ function textResult(data, isError = false) {
   };
 }
 
-function createServer(env) {
+function createServer(env, deviceCode) {
+  const deviceHub = hubFor(env, deviceCode);
   const server = new McpServer(
     { name: 'SEVEN Browser v1', version: MCP_VERSION },
     {
       instructions:
-        'This private SEVEN Browser v1 plugin is permanently bound to the user\'s default browser device. Never ask the user for a device code and never mention pairing unless the device is actually disconnected. seven_status checks the default browser connection. seven_command queues one browser command and returns a commandId immediately. seven_result checks that command without waiting or polling internally. Never loop or wait inside a tool call. For actions that change a page, use mission or sequence so the server can enforce SEVEN island rules. Automation-created tabs stay in the background, reuse SEVEN-managed tabs, are grouped into a collapsed SEVEN island, never activate in front of the user, and only SEVEN-created temporary tabs are auto-closed.',
+        `This private SEVEN Browser v1 plugin is permanently bound server-side to exactly one browser installation (${deviceCode}). Never accept or ask for another device code. Never mention pairing unless the bound device is actually disconnected. seven_status checks only the bound browser connection. seven_command queues one browser command and returns a commandId immediately. seven_result checks that command without waiting or polling internally. Never loop or wait inside a tool call. For actions that change a page, use mission or sequence so the server can enforce SEVEN island rules. Automation-created tabs stay in the background, reuse SEVEN-managed tabs, are grouped into a collapsed SEVEN island, never activate in front of the user, and only SEVEN-created temporary tabs are auto-closed.`,
     },
   );
 
@@ -66,9 +52,9 @@ function createServer(env) {
       },
     },
     async () => {
-      const response = await defaultHub(env).fetch('https://device.internal/agent/status');
+      const response = await deviceHub.fetch('https://device.internal/agent/status');
       const data = await responseJson(response);
-      return textResult(data, !response.ok);
+      return textResult({ ...data, deviceCode }, !response.ok);
     },
   );
 
@@ -99,13 +85,13 @@ function createServer(env) {
         );
       }
 
-      const response = await defaultHub(env).fetch('https://device.internal/agent/push', {
+      const response = await deviceHub.fetch('https://device.internal/agent/push', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ command: safeCommand }),
       });
       const data = await responseJson(response);
-      return textResult(data, !response.ok);
+      return textResult({ ...data, deviceCode }, !response.ok);
     },
   );
 
@@ -126,11 +112,11 @@ function createServer(env) {
       },
     },
     async ({ commandId }) => {
-      const response = await defaultHub(env).fetch(
+      const response = await deviceHub.fetch(
         `https://device.internal/agent/result?id=${encodeURIComponent(commandId)}`,
       );
       const data = await responseJson(response);
-      return textResult(data, !response.ok);
+      return textResult({ ...data, deviceCode }, !response.ok);
     },
   );
 
@@ -152,7 +138,7 @@ export async function handleMcp(request, env, options = {}) {
     });
   }
 
-  if (options.trusted !== true && !authorized(request, env)) {
+  if (options.trusted !== true && !(await isAgentRequest(request, env))) {
     return Response.json(
       { jsonrpc: '2.0', error: { code: -32001, message: 'Unauthorized' }, id: null },
       {
@@ -165,7 +151,15 @@ export async function handleMcp(request, env, options = {}) {
     );
   }
 
-  const server = createServer(env);
+  const deviceCode = normalizeDeviceCode(options.deviceCode || DEFAULT_DEVICE_CODE);
+  if (!deviceCode) {
+    return Response.json(
+      { jsonrpc: '2.0', error: { code: -32602, message: 'Invalid device binding' }, id: null },
+      { status: 400, headers: { 'cache-control': 'no-store' } },
+    );
+  }
+
+  const server = createServer(env, deviceCode);
   const transport = new WebStandardStreamableHTTPServerTransport({ enableJsonResponse: true });
   await server.connect(transport);
   const response = await transport.handleRequest(request);

@@ -1,6 +1,7 @@
 import { BRIDGE_VERSION } from './version.js';
+import { deviceMcpPath, normalizeDeviceBindingToken, normalizeDeviceCode } from './device-binding.js';
+import { hmacSha256Hex, isAgentRequest, sha256Hex, timingSafeEqual } from './security.js';
 
-const CODE_RE = /^\d{6}$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const MAX_WS_MESSAGE = 64 * 1024;
 const MAX_HTTP_BODY = 64 * 1024;
@@ -53,42 +54,13 @@ async function bodyJson(request) {
   }
 }
 
-function normalizeCode(value) {
-  const code = String(value || '').trim();
-  return CODE_RE.test(code) ? code : null;
-}
-
 function normalizeSecret(value) {
   const secret = String(value || '');
   return secret.length >= 32 && secret.length <= 256 ? secret : null;
 }
 
-async function sha256(value) {
-  const bytes = new TextEncoder().encode(value);
-  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
-  return [...digest].map((b) => b.toString(16).padStart(2, '0')).join('');
-}
-
-function constantTimeEqual(a, b) {
-  a = String(a || '');
-  b = String(b || '');
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
-}
-
-function isAgent(request, env) {
-  const configured = String(env.SEVEN_AGENT_KEY || '');
-  if (configured.length < 32) return false;
-  const auth = request.headers.get('authorization') || '';
-  if (!auth.startsWith('Bearer ')) return false;
-  return constantTimeEqual(auth.slice(7), configured);
-}
-
 function hubFor(env, code) {
-  const id = env.DEVICE_HUB.idFromName(`device:${code}`);
-  return env.DEVICE_HUB.get(id);
+  return env.DEVICE_HUB.getByName(`device:${code}`);
 }
 
 export default {
@@ -105,7 +77,7 @@ export default {
 
       if (url.pathname === '/v1/device/register' && request.method === 'POST') {
         const data = await bodyJson(request);
-        const code = normalizeCode(data.code);
+        const code = normalizeDeviceCode(data.code);
         const secret = normalizeSecret(data.secret);
         if (!code) return json({ ok: false, error: 'invalid_code' }, 400, corsHeaders);
         if (!secret) return json({ ok: false, error: 'invalid_secret' }, 400, corsHeaders);
@@ -120,7 +92,7 @@ export default {
         if (request.headers.get('upgrade')?.toLowerCase() !== 'websocket') {
           return json({ ok: false, error: 'websocket_required' }, 426, corsHeaders);
         }
-        const code = normalizeCode(url.searchParams.get('code'));
+        const code = normalizeDeviceCode(url.searchParams.get('code'));
         const secret = normalizeSecret(url.searchParams.get('secret'));
         if (!code || !secret) return json({ ok: false, error: 'invalid_credentials' }, 400, corsHeaders);
         const headers = new Headers(request.headers);
@@ -132,7 +104,7 @@ export default {
 
       if (url.pathname === '/v1/device/revoke' && request.method === 'POST') {
         const data = await bodyJson(request);
-        const code = normalizeCode(data.code);
+        const code = normalizeDeviceCode(data.code);
         const secret = normalizeSecret(data.secret);
         if (!code || !secret) return json({ ok: false, error: 'invalid_credentials' }, 400, corsHeaders);
         return hubFor(env, code).fetch('https://device.internal/revoke', {
@@ -143,16 +115,57 @@ export default {
       }
 
       if (url.pathname === '/v1/status' && request.method === 'GET') {
-        if (!isAgent(request, env)) return json({ ok: false, error: 'unauthorized' }, 401, corsHeaders);
-        const code = normalizeCode(url.searchParams.get('code'));
+        if (!(await isAgentRequest(request, env))) {
+          return json({ ok: false, error: 'unauthorized' }, 401, corsHeaders);
+        }
+        const code = normalizeDeviceCode(url.searchParams.get('code'));
         if (!code) return json({ ok: false, error: 'invalid_code' }, 400, corsHeaders);
         return hubFor(env, code).fetch('https://device.internal/agent/status');
       }
 
+      if (url.pathname === '/v1/plugin/path' && request.method === 'GET') {
+        if (request.headers.get('origin')) {
+          return json({ ok: false, error: 'server_to_server_only' }, 403, corsHeaders);
+        }
+        if (!(await isAgentRequest(request, env))) {
+          return json({ ok: false, error: 'unauthorized' }, 401, corsHeaders);
+        }
+
+        const code = normalizeDeviceCode(url.searchParams.get('code'));
+        if (!code) return json({ ok: false, error: 'invalid_code' }, 400, corsHeaders);
+
+        const bindingResponse = await hubFor(env, code).fetch(
+          'https://device.internal/agent/plugin-binding',
+        );
+        const binding = await bindingResponse.json();
+        if (!bindingResponse.ok || !binding?.token) {
+          return json(
+            { ok: false, error: binding?.error || 'device_not_available' },
+            bindingResponse.status,
+            corsHeaders,
+          );
+        }
+
+        const mcpPath = deviceMcpPath(code, binding.token);
+        if (!mcpPath) return json({ ok: false, error: 'binding_failed' }, 500, corsHeaders);
+        return json(
+          {
+            ok: true,
+            code,
+            mcpPath,
+            mcpUrl: new URL(mcpPath, url.origin).toString(),
+          },
+          200,
+          corsHeaders,
+        );
+      }
+
       if (url.pathname === '/v1/push' && request.method === 'POST') {
-        if (!isAgent(request, env)) return json({ ok: false, error: 'unauthorized' }, 401, corsHeaders);
+        if (!(await isAgentRequest(request, env))) {
+          return json({ ok: false, error: 'unauthorized' }, 401, corsHeaders);
+        }
         const data = await bodyJson(request);
-        const code = normalizeCode(data.code);
+        const code = normalizeDeviceCode(data.code);
         if (!code || !data.command || typeof data.command !== 'object') {
           return json({ ok: false, error: 'invalid_command' }, 400, corsHeaders);
         }
@@ -164,8 +177,10 @@ export default {
       }
 
       if (url.pathname === '/v1/result' && request.method === 'GET') {
-        if (!isAgent(request, env)) return json({ ok: false, error: 'unauthorized' }, 401, corsHeaders);
-        const code = normalizeCode(url.searchParams.get('code'));
+        if (!(await isAgentRequest(request, env))) {
+          return json({ ok: false, error: 'unauthorized' }, 401, corsHeaders);
+        }
+        const code = normalizeDeviceCode(url.searchParams.get('code'));
         const id = String(url.searchParams.get('id') || '');
         if (!code || !UUID_RE.test(id)) {
           return json({ ok: false, error: 'invalid_request' }, 400, corsHeaders);
@@ -178,6 +193,12 @@ export default {
       const message = error instanceof Error ? error.message : 'internal_error';
       if (message === 'body_too_large') return json({ ok: false, error: message }, 413, corsHeaders);
       if (message === 'invalid_json') return json({ ok: false, error: message }, 400, corsHeaders);
+      console.error(JSON.stringify({
+        message: 'bridge_request_failed',
+        method: request.method,
+        path: url.pathname,
+        error: message,
+      }));
       return json({ ok: false, error: 'internal_error' }, 500, corsHeaders);
     }
   },
@@ -192,7 +213,20 @@ export class DeviceHub {
   async validSecret(secret) {
     const expected = await this.ctx.storage.get('secretHash');
     if (!expected) return false;
-    return constantTimeEqual(await sha256(secret), expected);
+    return timingSafeEqual(await sha256Hex(secret), expected);
+  }
+
+  async pluginBindingToken() {
+    const [secretHash, revoked] = await Promise.all([
+      this.ctx.storage.get('secretHash'),
+      this.ctx.storage.get('revoked'),
+    ]);
+    if (!secretHash || revoked) return null;
+
+    return hmacSha256Hex(
+      this.env.SEVEN_AGENT_KEY,
+      `seven-device-mcp-v1:${this.ctx.id.toString()}:${secretHash}`,
+    );
   }
 
   async scheduleCleanup(at = Date.now() + RESULT_TTL_MS) {
@@ -234,11 +268,11 @@ export class DeviceHub {
       const secret = normalizeSecret(data.secret);
       if (!secret) return json({ ok: false, error: 'invalid_secret' }, 400);
 
-      const incomingHash = await sha256(secret);
+      const incomingHash = await sha256Hex(secret);
       const currentHash = await this.ctx.storage.get('secretHash');
       const revoked = Boolean(await this.ctx.storage.get('revoked'));
       if (currentHash && revoked) return json({ ok: false, error: 'revoked' }, 403);
-      if (currentHash && !constantTimeEqual(currentHash, incomingHash)) {
+      if (currentHash && !(await timingSafeEqual(currentHash, incomingHash))) {
         return json({ ok: false, error: 'code_in_use' }, 409);
       }
 
@@ -295,10 +329,34 @@ export class DeviceHub {
     if (url.pathname === '/agent/status') {
       await this.cleanupExpired();
       const sockets = this.ctx.getWebSockets('device');
+      const registered = Boolean(await this.ctx.storage.get('secretHash'));
       const lastSeenAt = (await this.ctx.storage.get('lastSeenAt')) || null;
       const meta = (await this.ctx.storage.get('meta')) || {};
       const revoked = Boolean(await this.ctx.storage.get('revoked'));
-      return json({ ok: true, connected: !revoked && sockets.length > 0, connections: sockets.length, lastSeenAt, meta, revoked });
+      return json({
+        ok: true,
+        registered,
+        connected: registered && !revoked && sockets.length > 0,
+        connections: sockets.length,
+        lastSeenAt,
+        meta,
+        revoked,
+      });
+    }
+
+    if (url.pathname === '/agent/plugin-binding' && request.method === 'GET') {
+      const token = await this.pluginBindingToken();
+      if (!token) return json({ ok: false, error: 'device_not_available' }, 404);
+      return json({ ok: true, token });
+    }
+
+    if (url.pathname === '/agent/plugin-authorize' && request.method === 'GET') {
+      const provided = normalizeDeviceBindingToken(url.searchParams.get('token'));
+      const expected = await this.pluginBindingToken();
+      if (!provided || !expected || !(await timingSafeEqual(provided, expected))) {
+        return json({ ok: false, error: 'not_found' }, 404);
+      }
+      return json({ ok: true, authorized: true });
     }
 
     if (url.pathname === '/agent/push' && request.method === 'POST') {
