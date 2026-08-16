@@ -1,0 +1,116 @@
+{
+  "$schema": "https://developers.openai.com/apps-sdk/schemas/chatgpt-app-submission.v1.json",
+  "schema_version": 1,
+  "app_info": {
+    "display_name": "SevenEx",
+    "subtitle": "Control your SEVEN browser",
+    "description": "SevenEx connects ChatGPT or Codex to the signed-in user's selected SEVEN browser. It checks browser availability, queues one browser command through the SEVEN Bridge, and reads the result while account, workspace, session, and device routing remain server-side.",
+    "category": "PRODUCTIVITY"
+  },
+  "tools": {
+    "seven_status": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Reads connection and compatibility status for the signed-in user's selected browser without changing browser or external state.",
+        "open_world_justification": "Does not publish, submit, or modify public or third-party internet state.",
+        "destructive_justification": "Does not delete, overwrite, revoke, or perform irreversible actions."
+      }
+    },
+    "seven_command": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": true,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Queues a browser command that may navigate, type, click, upload, submit, or otherwise change browser and external state.",
+        "open_world_justification": "Browser commands may interact with third-party websites and can change externally visible state depending on the requested mission.",
+        "destructive_justification": "A browser mission can include irreversible or destructive actions on external sites, so the tool is conservatively marked destructive."
+      }
+    },
+    "seven_result": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Reads the stored result for one previously queued command and does not execute another browser action.",
+        "open_world_justification": "Does not publish or change any external system; it only retrieves an existing command result.",
+        "destructive_justification": "Does not delete, overwrite, revoke, or perform irreversible actions."
+      }
+    }
+  },
+  "test_cases": [
+    {
+      "description": "Check whether the selected SEVEN browser is connected.",
+      "user_prompt": "Verifique se meu navegador SEVEN está conectado.",
+      "file_attachment_urls": null,
+      "tools_triggered": "seven_status",
+      "expected_output": "Reports connection and compatibility status without asking for a device code.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Queue a structural vision command for the selected browser.",
+      "user_prompt": "Use meu navegador SEVEN para ler estruturalmente a página atual.",
+      "file_attachment_urls": null,
+      "tools_triggered": "seven_command",
+      "expected_output": "Queues one policy-compliant vision command and returns a commandId for later result retrieval.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Read the result of a previously queued browser command.",
+      "user_prompt": "Busque o resultado do comando de navegador que acabou de ser enviado.",
+      "file_attachment_urls": null,
+      "tools_triggered": "seven_result",
+      "expected_output": "Returns the current stored result state for the command without internally polling or launching another browser action.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Run a safe browser mission through the managed tab policy.",
+      "user_prompt": "Abra uma pesquisa em uma aba SEVEN em segundo plano e leia o título da página, sem tirar meu foco.",
+      "file_attachment_urls": null,
+      "tools_triggered": "seven_command",
+      "expected_output": "Queues a mission that respects background-first managed-tab policy and returns a commandId.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Detect an incompatible or offline Operator before sending work.",
+      "user_prompt": "Confira se minha extensão SEVEN está pronta para receber comandos agora.",
+      "file_attachment_urls": null,
+      "tools_triggered": "seven_status",
+      "expected_output": "Reports whether the selected Operator is connected and compatible, including an update-required state when appropriate.",
+      "expected_output_url": null
+    }
+  ],
+  "negative_test_cases": [
+    {
+      "description": "Do not trigger for a Google Drive-only request.",
+      "user_prompt": "Liste os arquivos recentes do meu Google Drive sem usar o navegador.",
+      "file_attachment_urls": null,
+      "tools_triggered": null,
+      "expected_output": "SevenEx should not be invoked because direct Drive workflows are outside its browser transport scope.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Do not trigger for a general knowledge question.",
+      "user_prompt": "Explique a diferença entre WebSocket e HTTP polling.",
+      "file_attachment_urls": null,
+      "tools_triggered": null,
+      "expected_output": "The app should not be invoked because no SEVEN browser action or status is needed.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Do not trigger for a request that only needs text rewriting.",
+      "user_prompt": "Reescreva este parágrafo de forma mais curta e clara.",
+      "file_attachment_urls": null,
+      "tools_triggered": null,
+      "expected_output": "The app should not be invoked because the task does not require browser control.",
+      "expected_output_url": null
+    }
+  ]
+}
