@@ -1,26 +1,68 @@
 const DEFAULT_CORE_URL = 'https://seven-cloud-core.vercel.app';
+const CORE_BINDING_PATH = '/api/v1/sevenex/binding';
+const encoder = new TextEncoder();
 
 function coreUrl(env) {
   return String(env.SEVEN_CORE_URL || DEFAULT_CORE_URL).trim().replace(/\/+$/, '');
 }
 
-export function bearerHeader(request) {
-  const value = request.headers.get('authorization') || '';
-  return value.startsWith('Bearer ') && value.slice(7).trim() ? value : null;
+function bytesToHex(bytes) {
+  return Array.from(new Uint8Array(bytes), (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
-export async function resolveSevenExBinding(request, env, fetchImpl = fetch) {
-  const authorization = bearerHeader(request);
-  if (!authorization) return { ok: false, status: 401, error: 'account_unauthorized' };
+async function sha256Hex(value) {
+  return bytesToHex(await crypto.subtle.digest('SHA-256', encoder.encode(value)));
+}
+
+async function hmacHex(secret, value) {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  );
+  return bytesToHex(await crypto.subtle.sign('HMAC', key, encoder.encode(value)));
+}
+
+export async function signedCoreHeaders(method, pathWithQuery, body, env, now = Date.now()) {
+  const secret = String(env.SEVEN_OPERATOR_SHARED_SECRET || '').trim();
+  if (secret.length < 32) throw new Error('core_auth_not_configured');
+  const timestamp = String(now);
+  const bodyHash = await sha256Hex(body);
+  const canonical = `${timestamp}\n${String(method).toUpperCase()}\n${pathWithQuery}\n${bodyHash}`;
+  return {
+    'content-type': 'application/json',
+    accept: 'application/json',
+    'x-seven-source': 'seven-bridge',
+    'x-seven-timestamp': timestamp,
+    'x-seven-signature': await hmacHex(secret, canonical),
+  };
+}
+
+export async function resolveSevenExBinding(identity, env, fetchImpl = fetch) {
+  if (!identity?.userId || !identity?.clientId) {
+    return { ok: false, status: 401, error: 'account_unauthorized' };
+  }
+
+  const body = JSON.stringify({ userId: identity.userId, clientId: identity.clientId });
+  let headers;
+  try {
+    headers = await signedCoreHeaders('POST', CORE_BINDING_PATH, body, env);
+  } catch (error) {
+    return {
+      ok: false,
+      status: 503,
+      error: error instanceof Error ? error.message : 'core_auth_not_configured',
+    };
+  }
 
   let response;
   try {
-    response = await fetchImpl(`${coreUrl(env)}/api/v1/sevenex/binding`, {
-      method: 'GET',
-      headers: {
-        authorization,
-        accept: 'application/json',
-      },
+    response = await fetchImpl(`${coreUrl(env)}${CORE_BINDING_PATH}`, {
+      method: 'POST',
+      headers,
+      body,
       cache: 'no-store',
     });
   } catch {
@@ -32,7 +74,7 @@ export async function resolveSevenExBinding(request, env, fetchImpl = fetch) {
   if (!response.ok || data?.ok !== true) {
     return {
       ok: false,
-      status: response.status === 401 ? 401 : response.status === 403 ? 403 : response.status === 404 ? 404 : response.status === 409 ? 409 : 502,
+      status: response.status === 401 ? 401 : response.status === 403 ? 403 : response.status === 404 ? 404 : response.status === 409 ? 409 : response.status === 503 ? 503 : 502,
       error: typeof data?.error === 'string' ? data.error : 'binding_resolution_failed',
     };
   }
@@ -45,7 +87,7 @@ export async function resolveSevenExBinding(request, env, fetchImpl = fetch) {
 
   return {
     ok: true,
-    userId: typeof data.userId === 'string' ? data.userId : null,
+    userId: identity.userId,
     workspaceId: typeof data.workspaceId === 'string' ? data.workspaceId : null,
     sessionId,
     deviceCode,
