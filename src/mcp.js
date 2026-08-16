@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { hubForDevice, resolveSevenExBinding, verifyHubBinding } from './binding.js';
 import { normalizeLiveCommand } from './command.js';
 import { operatorCompatibility, publicDeviceStatus } from './contract.js';
+import { authenticateSevenExRequest, oauthErrorResponse } from './oauth.js';
 import { enforceIslandRules } from './policy.js';
 import { MCP_VERSION } from './version.js';
 
@@ -24,12 +25,10 @@ function textResult(data, isError = false) {
   };
 }
 
-function errorResponse(error, status = 401) {
-  const headers = { 'cache-control': 'no-store' };
-  if (status === 401) headers['www-authenticate'] = 'Bearer';
+function serviceErrorResponse(error, status = 503) {
   return Response.json(
     { jsonrpc: '2.0', error: { code: -32001, message: error }, id: null },
-    { status, headers },
+    { status, headers: { 'cache-control': 'no-store' } },
   );
 }
 
@@ -137,11 +136,18 @@ export async function handleMcp(request, env, options = {}) {
     legacy = true;
     hub = hubForDevice(env, String(options.legacyDeviceCode));
   } else {
-    const binding = await resolveSevenExBinding(request, env);
-    if (!binding.ok) return errorResponse(binding.error, binding.status);
+    const identity = await authenticateSevenExRequest(request, env);
+    if (!identity.ok) return oauthErrorResponse(identity.error, identity.status, env);
+
+    const binding = await resolveSevenExBinding(identity, env);
+    if (!binding.ok) {
+      if (binding.status === 401) return oauthErrorResponse(binding.error, binding.status, env);
+      return serviceErrorResponse(binding.error, binding.status);
+    }
+
     hub = hubForDevice(env, binding.deviceCode);
     const verified = await verifyHubBinding(hub, binding);
-    if (!verified.ok) return errorResponse(verified.error, verified.status);
+    if (!verified.ok) return serviceErrorResponse(verified.error, verified.status);
   }
 
   const server = createServer(hub, { legacy });
