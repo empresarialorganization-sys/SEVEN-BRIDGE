@@ -36,7 +36,7 @@ test('SevenEx rejects a DeviceHub that belongs to another session', async () => 
 test('SevenEx accepts only the current Operator contract', () => {
   const compatible = operatorCompatibility({
     operator: {
-      version: '0.11.0',
+      version: '1.1.0',
       protocolVersion: 1,
       capabilities: ['vision', 'visionDiff', 'mission', 'collectImages'],
     },
