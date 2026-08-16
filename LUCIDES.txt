@@ -7,9 +7,9 @@ PLANO LUCIDES — SEVEN-BRIDGE / SevenEx 1.1.0
 [x] 6. Preservar somente a rota de compatibilidade ainda consumida pelo app instalado atual.
 [x] 7. Implementar OAuth Resource Server no Bridge: metadata, JWKS, issuer, client_id e audience do SevenEx.
 [x] 8. Remover token passthrough: OAuth bearer termina no Bridge; binding do Core usa HMAC permanente serviço-a-serviço.
-→ 9. Validar CI da branch depois da fronteira OAuth final.
-[ ] 10. Confirmar SEVEN_OPERATOR_SHARED_SECRET configurado no Bridge e Core sem expor valor.
-[ ] 11. Publicar somente depois de migrations, OAuth Server e Custom Access Token Hook estarem ativos no Supabase.
+[x] 9. Validar CI da branch depois da fronteira OAuth final.
+→ 10. BLOQUEADO — falta SEVEN_OPERATOR_SHARED_SECRET no runtime do Cloudflare/Bridge; no Vercel/Core ele existe somente em Preview, não Production. O valor deve ser o mesmo nos dois serviços e nunca passar por chat/log.
+[ ] 11. BLOQUEADO — publicar somente depois de migrations, OAuth Server e Custom Access Token Hook estarem ativos no Supabase.
 [ ] 12. Validar E2E multiusuário e remover a última compatibilidade somente com zero consumidores.
 
 REGRAS ATUAIS
