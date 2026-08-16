@@ -1,31 +1,32 @@
-PLANO LUCIDES — SEVEN-BRIDGE / SevenEx 1.1.0
-[x] 1. Manter a URL MCP estável e independente de segredo de serviço.
-[x] 2. Reduzir o SevenEx a three tools: seven_status, seven_command e seven_result.
-[x] 3. Remover device padrão do caminho canônico: conta autenticada resolve user/workspace/session/device no Core.
-[x] 4. Verificar no Bridge que o DeviceHub pertence à session_id resolvida antes de aceitar comandos.
-[x] 5. Fixar contrato SevenEx/Bridge/Operator 1.1.0, protocolo 1 e capacidades obrigatórias.
-[x] 6. Preservar somente a rota de compatibilidade ainda consumida pelo app instalado atual.
-[x] 7. Implementar OAuth Resource Server no Bridge: metadata, JWKS, issuer, client_id e audience do SevenEx.
-[x] 8. Remover token passthrough: OAuth bearer termina no Bridge; binding do Core usa HMAC permanente serviço-a-serviço.
-[x] 9. Validar CI da branch depois da fronteira OAuth final e alinhar README canônico ao SevenEx 1.1.0.
-→ 10. Preparar pacote de submissão do app SevenEx com exatamente 3 tools, casos positivos/negativos e revisão dos hints reais.
-[ ] 11. BLOQUEADO — falta SEVEN_OPERATOR_SHARED_SECRET no runtime do Cloudflare/Bridge; no Vercel/Core ele existe somente em Preview, não Production. O valor deve ser o mesmo nos dois serviços e nunca passar por chat/log.
-[ ] 12. Migrations SevenEx novas já estão aplicadas no Supabase vivo. BLOQUEADO somente por OAuth Server + habilitação do sevenex_access_token_hook no Auth.
-[ ] 13. Executar E2E multiusuário/workspace/browser depois dos gates e remover a última compatibilidade somente com zero consumidores.
+PLANO LUCIDES — RETOMADA / SevenEx 1.1.0
+[x] Arquitetura, migrations, hardening e CI fechados.
+→ 1. Remover o gate do SEVEN_OPERATOR_SHARED_SECRET sem expor valor.
+[ ] 2. Remover o gate do OAuth Server + sevenex_access_token_hook.
+[ ] 3. Preparar/publicar o SevenEx + Operator 1.1.0.
+[ ] 4. Rodar E2E multiusuário/workspace/browser.
+[ ] 5. Remover legado sem consumidores e fechar publicação.
+
+DETALHES JÁ CONCLUÍDOS
+[x] URL MCP estável e independente de segredo de serviço.
+[x] SevenEx reduzido a seven_status, seven_command e seven_result.
+[x] Device padrão removido do caminho canônico; conta autenticada resolve user/workspace/session/device no Core.
+[x] Bridge verifica que o DeviceHub pertence à session_id resolvida antes de aceitar comandos.
+[x] Contrato SevenEx/Bridge/Operator 1.1.0, protocolo 1 e capacidades obrigatórias fixados.
+[x] OAuth Resource Server no Bridge com metadata, JWKS, issuer, client_id e audience do SevenEx.
+[x] OAuth bearer termina no Bridge; Bridge -> Core usa HMAC serviço-a-serviço.
+[x] Migrations SevenEx de browser ativo, multiworkspace e função sevenex_access_token_hook aplicadas no Supabase vivo.
+[x] CI técnico verde no Core e Bridge.
 
 REGRAS ATUAIS
 - SevenEx é apenas a porta fina de ChatGPT/Codex; inteligência e identidade não ficam no MCP.
 - O caminho canônico é OAuth SevenEx -> Bridge valida JWT/audience -> HMAC interno -> Core resolve workspace/browser -> session_id/device_code -> DeviceHub -> WebSocket -> Operator.
 - Token OAuth de usuário nunca é repassado ao Core nem a outro serviço.
-- O recurso OAuth canônico é o endpoint /mcp do SevenEx; token com audience genérica ou diferente deve ser negado.
-- Nunca selecionar dispositivo por “último visto” quando houver mais de um browser vinculado.
+- Nunca selecionar dispositivo por último visto quando houver mais de um browser vinculado.
 - device_code identifica execução, não identidade de usuário, e nunca entra no schema das tools do SevenEx.
-- O Bridge deve negar quando a session_id registrada no DeviceHub não corresponder ao binding resolvido pelo Core.
 - SevenEx/Bridge/Operator usam release 1.1.0; protocolo e capacidades incompatíveis bloqueiam comando com atualização requerida.
 - SEVEN_OPERATOR_SHARED_SECRET é segredo permanente serviço-a-serviço; nunca colocar valor no Git, logs, docs ou resposta.
-- As migrations de browser ativo, multiworkspace e função sevenex_access_token_hook estão vivas; o hook só passa a atuar quando habilitado administrativamente no Auth.
-- O app instalado anterior permanece funcional apenas durante a migração; sua rota/device de compatibilidade não é modelo para novos usuários.
-- O arquivo chatgpt-app-submission.json é metadata de submissão do SevenEx e deve refletir exatamente as tools reais; não cria nova arquitetura nem novo runtime.
+- O hook sevenex_access_token_hook já existe no banco, mas só atua quando habilitado administrativamente no Auth junto do OAuth Server.
+- O app/extensão instalados anteriores permanecem funcionais durante a migração até o SevenEx/Operator 1.1.0 passarem E2E.
 - Não criar rota, token, workflow ou endpoint temporário de diagnóstico.
 - Não expor segredo de serviço, segredo do device ou URL privada de capacidade em Git, logs, docs ou resposta.
 - Preservar política de ilhas: background-first, reutilização de abas gerenciadas, foco protegido e fechamento apenas das abas criadas pela SEVEN.
