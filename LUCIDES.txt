@@ -1,42 +1,21 @@
-PLANO LUCIDES — SEVEN-BRIDGE
-[x] 1. Desacoplar a URL estável do MCP de SEVEN_AGENT_KEY.
-[x] 2. Preservar o SEVEN Browser v1 instalado e compatibilidade durante a migração.
-[x] 3. Fixar a fronteira multiusuário: conta/senha no Core; senha bruta nunca no Bridge; SEVEN_AGENT_KEY somente serviço.
-[x] 4. Adicionar testes contra rota derivada da chave, rotas temporárias e regressão das ilhas.
-[x] 5. Validar CI, publicar Bridge 1.0.1 e confirmar Cloudflare sem desativar a instalação atual.
-[x] 6. Verificar o protocolo real do SEVEN Operator instalado e isolar a causa de comando live inválido.
-[x] 7. Normalizar comandos no Bridge para protocolo live v1 antes do WebSocket, preservando compatibilidade com a extensão instalada.
-[x] 8. Validar CI, publicar Bridge 1.0.2 e confirmar saúde do Worker.
-→ 9. OPÇÃO SOS TEMPORÁRIA AUTORIZADA — manter /bootstrap/control e fallback compatível com o runtime legado 0.8.0 ativos enquanto SevenEx + Operator novos ainda não estiverem autenticados e aprovados em E2E real.
-[ ] 10. Fechar os cliques administrativos necessários e concluir configuração do app/extensão reais.
-[ ] 11. Publicar SevenEx + Operator novos, autenticar conta/extensão e confirmar funcionamento ponta a ponta.
-[ ] 12. Assim que SevenEx no ChatGPT + login válido + Operator novo conectado + E2E real estiverem aprovados, desativar/remover integralmente a Opção SOS e sua compatibilidade legado 0.8.0, remover referências técnicas 0.8.0 de código/documentação/fontes ativas do Projeto SEVEN não meche e validar zero resíduos funcionais; não reescrever histórico Git.
+PLANO LUCIDES — SEVEN-BRIDGE / CORTE SEVENEX 1.1.0
+[x] Arquitetura SevenEx account-bound, MCP fino, binding Core e contrato Operator 1.1.0 preparados na branch canônica.
+→ 1. REMOVER LEGADO 0.8 — eliminar bootstrap, rotas de compatibilidade, device padrão e referências ativas do runtime legado.
+[ ] 2. PROMOVER SEVENEX 1.1.0 — reconciliar a branch refactor/sevenex-thin-mcp-v1 com main sem reincorporar legado.
+[ ] 3. FECHAR OAUTH — habilitar Supabase OAuth Server e sevenex_access_token_hook e validar metadata/JWKS.
+[ ] 4. FECHAR AUTENTICAÇÃO INTERNA — configurar SEVEN_OPERATOR_SHARED_SECRET no Core Production e Bridge runtime com o mesmo valor, sem expor o segredo.
+[ ] 5. CADASTRAR SEVENEX NO CHATGPT — conectar /mcp, autenticar conta e validar exatamente seven_status, seven_command e seven_result.
+[ ] 6. E2E FINAL — Operator 1.1.0 autenticado, isolamento user/workspace/browser e status -> command -> result aprovados.
 
 REGRAS ATUAIS
-- Não desativar nem quebrar o SEVEN Browser v1 atualmente instalado durante esta mudança.
-- A URL pública/estável do MCP não pode depender de SEVEN_AGENT_KEY.
-- SEVEN_AGENT_KEY é segredo interno de serviço; não é senha de usuário e não deve aparecer em URL, Git, logs ou resposta.
-- Cada usuário deve autenticar pela própria conta SEVEN; senha bruta nunca é armazenada nem validada pelo Bridge.
-- O caminho multiusuário deve resolver o dispositivo do usuário autenticado e nunca misturar usuários, sessões ou dispositivos.
-- As rotas de compatibilidade existentes servem somente para preservar a instalação atual durante a migração; não devem ser copiadas como modelo de novos usuários.
-- O Bridge deve canonicalizar comandos live antes da entrega: protocolo v1, action obrigatório e compatibilidade controlada com wrappers antigos.
-- Nome operacional vigente da ponte temporária: OPÇÃO SOS. O identificador técnico legado 0.8.0 só deve aparecer quando necessário para localizar/remover compatibilidade.
-- Decisão explícita vigente de Daniel em 2026-08-17: a Opção SOS permanece ativa durante a configuração. A autorização para aposentadoria já está dada e é condicional: quando SevenEx no ChatGPT estiver funcionando, a conta estiver autenticada, o Operator novo estiver conectado e o E2E real passar, desativar/remover a Opção SOS e todo o suporte ativo específico do runtime legado 0.8.0 sem pedir nova autorização.
-- No mesmo fechamento, remover referências técnicas 0.8.0 das fontes ativas do Projeto SEVEN não meche, documentação operacional, compatibilidade e código comprovadamente substituído. Histórico Git/commits antigos não deve ser reescrito.
-- Antes dessa condição completa, não remover a Opção SOS porque ela ainda é a contingência usada para configuração.
-- A Opção SOS não substitui a arquitetura principal SevenEx + MCP fino + Bridge + Operator e não deve ser expandida para infraestrutura paralela.
-- /bootstrap/control sem query usa a implementação canônica em bootstrap.js; nenhum handler antigo pode interceptá-la silenciosamente.
-- Compatibilidade excepcional da Opção SOS (runtime legado 0.8.0): /bootstrap/control?compat=1 pode ser atendido pelo handler de compatibilidade, e somente /bootstrap/execute POST é roteado ao mesmo executor.
-- O fallback recebe capacidade HMAC curta exclusivamente no fragmento # da página, remove o fragmento antes da chamada e envia a capacidade somente em POST same-origin para /bootstrap/execute; não guarda token em query/path, não cria sessão persistente e não aceita Origin externo.
-- Cada sessão/capacidade individual expira em 15 minutos e pode ser renovada; essa expiração protege a sessão e NÃO desativa a Opção SOS.
-- /bootstrap/start só opera quando o navegador SEVEN já está conectado.
-- Não manter missão longa de espera para segurar aba: no runtime legado isso prejudica a conexão WebSocket. Entregar comandos curtos e deixar a extensão livre para heartbeat/reconexão.
-- Eyes permitidos: vision e visionDiff, sempre sobre aba-alvo explícita e sem inferir estado não observado.
-- Hands permitidos: mission e sequence; dentro deles a extensão pode operar em páginas normais com click, type, press, select, scroll, hover, open e navigate conforme suportado pela versão instalada.
-- Limitação comprovada: no Supabase, a Opção SOS recebe e conclui missões, mas os eventos sintéticos testados não alteram os controles React de OAuth/Auth Hooks. Não declarar configuração alterada sem verificação posterior.
-- O Operator 1.1.0 novo recebeu hardening pointer-aware antes da publicação para tratar essa classe de controle.
-- Fora dessa exceção, não criar rota, token, workflow ou endpoint temporário de diagnóstico.
-- Preservar política de ilhas: background-first, sem roubar foco, reutilização de abas gerenciadas e fechamento apenas de abas criadas pela SEVEN.
-- Antes de criar, verificar se já existe solução equivalente; não duplicar arquitetura.
-- Não alterar arquitetura silenciosamente; mudanças de autenticação e resolução de dispositivo precisam de testes proporcionais ao risco.
-- Nunca incluir segredos, credenciais, senhas, tokens ou URLs privadas de capacidade neste arquivo.
+- Runtime legado 0.8/Opção SOS está aposentado por decisão explícita do usuário e não pode permanecer como fallback ativo, bootstrap, rota de compatibilidade, device padrão ou fonte operacional.
+- Não reescrever histórico Git antigo; remover o legado do estado atual, produção, documentação operacional e fontes ativas.
+- O caminho canônico é ChatGPT/Codex -> SevenEx -> /mcp -> OAuth no Bridge -> HMAC interno -> Core -> DeviceHub/WebSocket -> Operator 1.1.0.
+- SevenEx expõe somente seven_status, seven_command e seven_result.
+- device_code identifica execução; não é identidade e nunca entra no schema público das tools nem pode existir como device padrão global.
+- Browser ativo é selecionado explicitamente por user_id + workspace_id + session_id; nunca escolher por último visto.
+- OAuth bearer do usuário termina no Bridge; nunca repassar bearer ao Core.
+- Bridge -> Core usa somente autenticação serviço-a-serviço; nunca registrar ou expor o valor do segredo.
+- Não recriar bootstrap, endpoint temporário ou compatibilidade paralela para substituir o legado removido.
+- Preservar política de ilhas, foco protegido, acessibilidade, isolamento multiusuário e contrato de versão/protocolo/capacidades.
+- Antes de publicar, validar CI e buscar referências residuais ativas ao legado; histórico Git não conta como resíduo ativo.
