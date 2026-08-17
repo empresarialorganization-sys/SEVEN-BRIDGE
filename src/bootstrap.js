@@ -148,7 +148,6 @@ function controlHtml() {
   const nonce = randomToken(18);
   const body = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SEVEN TEMP CONTROL</title></head><body><main><h1>SEVEN TEMP CONTROL</h1><pre id="state">INITIALIZING</pre></main><script nonce="${nonce}">(() => {
     const out = document.getElementById('state');
-    const CSRF_KEY = 'seven_bootstrap_csrf';
     const EXP_KEY = 'seven_bootstrap_expires';
     let running = false;
 
@@ -178,12 +177,9 @@ function controlHtml() {
     }
 
     async function session() {
-      const cached = sessionStorage.getItem(CSRF_KEY);
-      if (cached) return { ok: true, csrf: cached, expiresAt: sessionStorage.getItem(EXP_KEY) || null };
       const response = await fetch('/bootstrap/session', { credentials: 'same-origin', cache: 'no-store' });
       const result = await readJson(response);
       if (!result.ok || !result.body?.ok || !result.body?.csrf) return { ok: false, result };
-      sessionStorage.setItem(CSRF_KEY, result.body.csrf);
       sessionStorage.setItem(EXP_KEY, result.body.expiresAt || '');
       return { ok: true, csrf: result.body.csrf, expiresAt: result.body.expiresAt || null };
     }
@@ -215,12 +211,10 @@ function controlHtml() {
           });
           const result = await readJson(response);
           if (!result.ok || !result.body?.ok || !result.body?.csrf) {
-            sessionStorage.removeItem(CSRF_KEY);
             sessionStorage.removeItem(EXP_KEY);
             render({ ok: false, status: result.status, error: result.body?.error || 'claim_failed' });
             return;
           }
-          sessionStorage.setItem(CSRF_KEY, result.body.csrf);
           sessionStorage.setItem(EXP_KEY, result.body.expiresAt || '');
           render({ ok: true, status: 'ready', expiresAt: result.body.expiresAt || null }, 'SEVEN TEMP READY');
           return;
@@ -251,10 +245,7 @@ function controlHtml() {
 
         const response = await fetch(requestUrl, { credentials: 'same-origin', cache: 'no-store' });
         const result = await readJson(response);
-        if (op === 'end' && result.ok) {
-          sessionStorage.removeItem(CSRF_KEY);
-          sessionStorage.removeItem(EXP_KEY);
-        }
+        if (op === 'end' && result.ok) sessionStorage.removeItem(EXP_KEY);
         render({ ok: result.ok, status: result.status, body: result.body });
       } catch {
         render({ ok: false, error: 'control_network_error' });
