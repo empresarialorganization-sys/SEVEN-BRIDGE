@@ -5,7 +5,6 @@ import { classifyMcpPath } from './plugin-routes.js';
 
 export { DeviceHub };
 
-const INSTALLED_LEGACY_DEVICE_CODE = '493680';
 const RESOURCE_METADATA_PATHS = new Set([
   '/.well-known/oauth-protected-resource',
   '/.well-known/oauth-protected-resource/mcp',
@@ -19,20 +18,8 @@ export default {
       return protectedResourceMetadataResponse(env);
     }
 
-    const routeKind = classifyMcpPath(url.pathname);
-
-    // Canonical SevenEx endpoint: OAuth user -> Core binding -> exact DeviceHub.
-    if (routeKind === 'service') {
+    if (classifyMcpPath(url.pathname) === 'service') {
       return handleMcp(request, env);
-    }
-
-    // Temporary compatibility only for the already installed app. Never use this
-    // device code in the canonical /mcp flow. Remove after SevenEx passes E2E.
-    if (routeKind === 'installed-compatibility') {
-      return handleMcp(request, env, {
-        trusted: true,
-        legacyDeviceCode: INSTALLED_LEGACY_DEVICE_CODE,
-      });
     }
 
     return bridge.fetch(request, env, ctx);
