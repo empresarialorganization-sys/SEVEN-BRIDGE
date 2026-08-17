@@ -23,9 +23,9 @@ REGRAS ATUAIS
 - Manter compatibilidade existente até a substituição passar em teste ponta a ponta; só então remover o que ficou comprovadamente obsoleto, exceto o bootstrap secundário autorizado abaixo.
 - Exceção autorizada em 2026-08-17: o Bridge pode manter o bootstrap operacional como caminho secundário sem prazo global até ordem explícita de Daniel para removê-lo.
 - O bootstrap secundário não substitui SevenEx + Operator como arquitetura principal e não deve ser expandido silenciosamente para nova infraestrutura paralela.
-- O bootstrap não pode aceitar comando anônimo. A rota inicial só dispara uma página de claim assinada no navegador SEVEN já conectado. O controle posterior exige posse de um token HMAC curto gerado após esse claim; o token fica somente em fragmento # no navegador, não vai em URL/log do servidor e a sessão individual expira em 15 minutos.
-- O claim do bootstrap deve abrir em aba SEVEN dedicada, sem reutilizar outra aba gerenciada e sem auto-close durante a sessão; essa aba pode ser fechada ao encerrar/expirar a sessão.
-- A rota temporária /bootstrap/session pode retornar somente csrf e expiresAt para o mesmo navegador que já possui cookie HttpOnly válido; não retorna token e não cria sessão por conta própria.
+- O bootstrap não pode aceitar comando anônimo. A rota inicial só pode entregar um token HMAC curto ao navegador SEVEN já conectado; esse token deve existir apenas no fragmento inicial da aba de controle, ser trocado por cookie HttpOnly + CSRF no próprio navegador e removido da URL imediatamente depois do claim.
+- A aba /bootstrap/control deve permanecer como aba SEVEN gerenciada durante a sessão e aceitar apenas comandos sem segredo no fragmento; sessões individuais expiram em 15 minutos e precisam ser renovadas pelo mesmo fluxo autenticado.
+- A rota /bootstrap/session pode retornar somente csrf e expiresAt para o mesmo navegador que já possui cookie HttpOnly válido; não retorna token e não cria sessão por conta própria.
 - Eyes permitidos no bootstrap secundário: vision e visionDiff, sempre sobre a aba-alvo explícita e sem inferir estado não observado.
 - Hands permitidos no bootstrap secundário: mission e sequence; dentro deles a extensão pode operar em páginas normais com click, doubleClick quando suportado, type, press, select, scroll, hover, open e navigate.
 - Não tentar burlar restrições nativas do navegador/OS, permissões do site ou áreas protegidas que extensões não podem controlar; isso é limitação da plataforma, não regra de produto.
