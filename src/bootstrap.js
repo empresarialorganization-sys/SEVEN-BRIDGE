@@ -153,7 +153,7 @@ async function startBootstrap(request, env, url) {
   const command = enforceIslandRules(normalizeLiveCommand({
     v: 1,
     action: 'mission',
-    steps: [{ action: 'open', url: claimUrl, temporary: false }],
+    steps: [{ action: 'open', url: claimUrl, args: { url: claimUrl }, temporary: false }],
   }));
   const pushed = await hub(env).fetch('https://device.internal/agent/push', {
     method: 'POST',
