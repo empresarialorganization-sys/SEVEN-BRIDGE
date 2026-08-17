@@ -2,7 +2,6 @@ import { normalizeLiveCommand } from './command.js';
 import { enforceIslandRules } from './policy.js';
 
 const TEMP_DEVICE_CODE = '493680';
-const BOOTSTRAP_DEADLINE_MS = Date.parse('2026-08-17T05:35:00Z');
 const CONTROL_TTL_MS = 15 * 60 * 1000;
 const COOKIE_NAME = 'seven_bootstrap';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -248,7 +247,6 @@ async function endBootstrap(request, env, url) {
 export async function handleTemporaryBootstrap(request, env) {
   const url = new URL(request.url);
   if (!url.pathname.startsWith('/bootstrap')) return null;
-  if (Date.now() >= BOOTSTRAP_DEADLINE_MS) return json({ ok: false, error: 'bootstrap_expired' }, 410);
   if (String(env.SEVEN_AGENT_KEY || '').length < 32) return json({ ok: false, error: 'bootstrap_auth_not_configured' }, 503);
 
   if (url.pathname === '/bootstrap/start' && request.method === 'GET') return startBootstrap(request, env, url);
