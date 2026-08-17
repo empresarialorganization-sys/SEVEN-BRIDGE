@@ -2,7 +2,7 @@ import { normalizeLiveCommand } from './command.js';
 import { enforceIslandRules } from './policy.js';
 
 const TEMP_DEVICE_CODE = '493680';
-const BOOTSTRAP_DEADLINE_MS = Date.parse('2026-08-17T04:30:00Z');
+const BOOTSTRAP_DEADLINE_MS = Date.parse('2026-08-17T05:35:00Z');
 const CONTROL_TTL_MS = 15 * 60 * 1000;
 const COOKIE_NAME = 'seven_bootstrap';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
