@@ -22,7 +22,7 @@ REGRAS ATUAIS
 - O Bridge deve canonicalizar comandos live antes da entrega: protocolo v1, action obrigatório e compatibilidade controlada com wrappers antigos.
 - Manter compatibilidade existente até a substituição passar em teste ponta a ponta; só então remover o que ficou comprovadamente obsoleto.
 - Exceção temporária explicitamente autorizada em 2026-08-16: o Bridge pode expor um bootstrap de curta duração para concluir configuração administrativa enquanto SevenEx/Operator real ainda não está disponível no chat.
-- O bootstrap não pode aceitar comando anônimo. A rota inicial só pode disparar uma página de claim assinada no navegador SEVEN já conectado; o controle posterior exige cookie HttpOnly assinado + CSRF e aceita somente vision, visionDiff, mission ou sequence após política de ilhas.
+- O bootstrap não pode aceitar comando anônimo. A rota inicial só dispara uma página de claim assinada no navegador SEVEN já conectado. O controle posterior exige posse de um token HMAC curto gerado após esse claim; o token fica somente em fragmento # no navegador, não vai em URL/log do servidor, expira em 15 minutos e autoriza apenas status/result e vision, visionDiff, mission ou sequence após política de ilhas.
 - O bootstrap deve ter expiração absoluta, não criar novo segredo de ambiente, não revelar SEVEN_AGENT_KEY/device secret e ser removido logo após o app/extensão reais passarem o teste necessário.
 - Fora dessa exceção, não criar rota, token, workflow ou endpoint temporário de diagnóstico.
 - Preservar política de ilhas: background-first, sem roubar foco, reutilização de abas gerenciadas e fechamento apenas de abas criadas pela SEVEN.
