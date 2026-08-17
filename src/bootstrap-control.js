@@ -2,7 +2,6 @@ import { normalizeLiveCommand } from './command.js';
 import { enforceIslandRules } from './policy.js';
 
 const TEMP_DEVICE_CODE = '493680';
-const BOOTSTRAP_DEADLINE_MS = Date.parse('2026-08-17T05:35:00Z');
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ALLOWED_ACTIONS = new Set(['vision', 'visionDiff', 'mission', 'sequence']);
 const MAX_BODY_BYTES = 64 * 1024;
@@ -134,7 +133,6 @@ async function execute(request, env) {
 export async function handleTemporaryCapabilityControl(request, env) {
   const url = new URL(request.url);
   if (url.pathname !== '/bootstrap/control' && url.pathname !== '/bootstrap/execute') return null;
-  if (Date.now() >= BOOTSTRAP_DEADLINE_MS) return json({ ok: false, error: 'bootstrap_expired' }, 410);
   if (String(env.SEVEN_AGENT_KEY || '').length < 32) return json({ ok: false, error: 'bootstrap_auth_not_configured' }, 503);
   if (url.pathname === '/bootstrap/control' && request.method === 'GET') return controlHtml();
   if (url.pathname === '/bootstrap/execute' && request.method === 'POST') return execute(request, env);
