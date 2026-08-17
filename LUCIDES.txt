@@ -1,40 +1,23 @@
-PLANO LUCIDES — RETOMADA / SevenEx 1.1.0
-[x] Arquitetura, migrations, hardening e CI fechados.
-→ 1. FECHAR BLOQUEIO — configurar o mesmo SEVEN_OPERATOR_SHARED_SECRET no Vercel Production e no Cloudflare/Bridge, sem expor valor; estado vivo atual: Vercel ainda Preview-only e Cloudflare ainda sem o secret.
-[ ] 2. FECHAR BLOQUEIO — habilitar Supabase OAuth Server e sevenex_access_token_hook no Auth; a função existe e está permissionada no banco, mas o endpoint público ainda responde feature_disabled e o hook ainda não está ativo.
-[ ] 3. PREPARO TÉCNICO CONCLUÍDO / PUBLICAÇÃO PENDENTE pelos itens 1 e 2: SevenEx e Operator 1.1.0 estão prontos para o corte.
-[ ] 4. Rodar E2E multiusuário/workspace/browser após publicação real.
-[ ] 5. Após E2E aprovado do SevenEx + Operator novos, desativar/remover o bootstrap temporário do Bridge; remover outros legados somente após comprovar zero consumidores.
-
-DETALHES JÁ CONCLUÍDOS
-[x] URL MCP estável e independente de segredo de serviço.
-[x] SevenEx reduzido a seven_status, seven_command e seven_result.
-[x] Device padrão removido do caminho canônico; conta autenticada resolve user/workspace/session/device no Core.
-[x] Bridge verifica que o DeviceHub pertence à session_id resolvida antes de aceitar comandos.
-[x] Contrato SevenEx/Bridge/Operator 1.1.0, protocolo 1 e capacidades obrigatórias fixados.
-[x] OAuth Resource Server no Bridge com metadata, JWKS, issuer, client_id e audience do SevenEx.
-[x] OAuth bearer termina no Bridge; Bridge -> Core usa HMAC serviço-a-serviço.
-[x] Migrations SevenEx de browser ativo, multiworkspace e função sevenex_access_token_hook aplicadas no Supabase vivo.
-[x] chatgpt-app-submission.json criado para SevenEx com 3 tools, 5 testes positivos e 3 negativos; annotations revisadas contra a implementação real.
-[x] outputSchema ausente nas 3 tools é melhoria não-bloqueante; não inventar schemas sem migrar handlers para structuredContent coerente.
-[x] CI Bridge run 64 verde no head anterior à sincronização documental; revalidar CI após este commit documental.
-[x] Operator 1.1.0 possui ZIP canônico validado pelo workflow Package SEVEN Operator #6 após hardening pointer-aware no Core.
-[x] Bridge produção atual preserva compatibilidade e bootstrap temporário enquanto gates administrativos seguem abertos.
+PLANO LUCIDES — SEVENEX 1.1.0 / BRIDGE
+[x] Arquitetura account-bound, OAuth resource metadata, Core binding, contrato Operator e submissão SevenEx preparados.
+→ 1. REMOVER LEGADO 0.8 — eliminar qualquer rota, device padrão, trusted bypass ou compatibilidade destinada ao runtime antigo.
+[ ] 2. VALIDAR BRANCH LEGACY-FREE — CI, testes de isolamento e busca de resíduos ativos.
+[ ] 3. PROMOVER PARA MAIN — reconciliar sem reincorporar bootstrap ou fallback legado.
+[ ] 4. FECHAR OAUTH — habilitar OAuth Server + sevenex_access_token_hook e validar metadata/JWKS.
+[ ] 5. FECHAR AUTENTICAÇÃO INTERNA — configurar SEVEN_OPERATOR_SHARED_SECRET no Core Production e Bridge runtime com o mesmo valor sem expor segredo.
+[ ] 6. CADASTRAR E TESTAR SEVENEX NO CHATGPT — exatamente seven_status, seven_command e seven_result.
+[ ] 7. E2E FINAL — Operator 1.1.0 autenticado e isolamento user/workspace/browser aprovado.
 
 REGRAS ATUAIS
-- SevenEx é apenas a porta fina de ChatGPT/Codex; inteligência e identidade não ficam no MCP.
-- O caminho canônico é OAuth SevenEx -> Bridge valida JWT/audience -> HMAC interno -> Core resolve workspace/browser -> session_id/device_code -> DeviceHub -> WebSocket -> Operator.
+- Runtime legado 0.8/Opção SOS está aposentado e não pode existir como fallback ativo, rota de compatibilidade, trusted bypass, device padrão, bootstrap ou fonte operacional.
+- Não reescrever histórico Git antigo; remover resíduos do estado atual e da documentação operacional.
+- SevenEx é a porta fina do ChatGPT/Codex; inteligência, conta e seleção de browser permanecem fora do MCP.
+- O caminho canônico é OAuth SevenEx -> Bridge valida JWT/audience -> HMAC interno -> Core resolve workspace/browser -> session_id/device_code -> DeviceHub/WebSocket -> Operator 1.1.0.
 - Token OAuth de usuário nunca é repassado ao Core nem a outro serviço.
-- Nunca selecionar dispositivo por último visto quando houver mais de um browser vinculado.
-- device_code identifica execução, não identidade de usuário, e nunca entra no schema das tools do SevenEx.
-- SevenEx/Bridge/Operator usam release 1.1.0; protocolo e capacidades incompatíveis bloqueiam comando com atualização requerida.
-- SEVEN_OPERATOR_SHARED_SECRET é segredo permanente serviço-a-serviço; nunca colocar valor no Git, logs, docs ou resposta.
-- O hook sevenex_access_token_hook já existe no banco, mas só atua quando habilitado administrativamente no Auth junto do OAuth Server.
-- O app/extensão instalados anteriores permanecem funcionais durante a migração até o SevenEx/Operator 1.1.0 passarem E2E.
-- O pacote de submissão é metadata do mesmo SevenEx; não cria outro plugin, Bridge, MCP ou extensão.
-- Decisão explícita vigente de Daniel em 2026-08-17: o bootstrap Bridge/Cloudflare é temporário para concluir configuração; quando SevenEx + Operator novos passarem E2E real, desativar e remover essa ponte.
-- A ponte temporária não substitui o SevenEx canônico e não deve ser expandida silenciosamente para infraestrutura paralela.
-- Não criar rota, token, workflow ou endpoint temporário de diagnóstico fora da ponte explicitamente autorizada.
-- Não expor segredo de serviço, segredo do device ou URL privada de capacidade em Git, logs, docs ou resposta.
-- Preservar política de ilhas: background-first, reutilização de abas gerenciadas, foco protegido e fechamento apenas das abas criadas pela SEVEN.
-- Outras compatibilidades antigas só saem após substituição funcional, E2E, busca de consumidores e rollback conhecido.
+- device_code identifica execução, não identidade, nunca entra no schema público e nunca pode ser global/default.
+- Nunca selecionar browser por último visto; seleção é explícita por conta/workspace.
+- SevenEx expõe somente seven_status, seven_command e seven_result.
+- Versão, protocolo e capacidades incompatíveis bloqueiam comandos.
+- Não criar ponte temporária, rota de diagnóstico ou compatibilidade paralela após a aposentadoria do legado.
+- Não expor segredos, credenciais, tokens ou URLs privadas de capacidade.
+- Preservar política de ilhas, foco protegido, acessibilidade e isolamento multiusuário.
