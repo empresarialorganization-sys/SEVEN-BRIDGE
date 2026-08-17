@@ -195,6 +195,18 @@ async function claimSession(request, env) {
   );
 }
 
+async function sessionInfo(request, env) {
+  const token = cookieValue(request, COOKIE_NAME);
+  if (!token) return json({ ok: false, error: 'bootstrap_session_required' }, 401);
+  const payload = await verifyControlToken(env, token);
+  if (!payload) return json({ ok: false, error: 'bootstrap_session_required' }, 401);
+  return json({
+    ok: true,
+    csrf: await csrfFor(env, token),
+    expiresAt: new Date(payload.exp).toISOString(),
+  });
+}
+
 async function bootstrapStatus(request, env, url) {
   const session = await controlSession(request, env, url);
   if (!session.ok) return session.response;
@@ -253,6 +265,7 @@ export async function handleTemporaryBootstrap(request, env) {
   if (url.pathname === '/bootstrap/start-result' && request.method === 'GET') return startResult(env, url);
   if (url.pathname === '/bootstrap/claim' && request.method === 'GET') return claimHtml();
   if (url.pathname === '/bootstrap/claim-session' && request.method === 'POST') return claimSession(request, env);
+  if (url.pathname === '/bootstrap/session' && request.method === 'GET') return sessionInfo(request, env);
   if (url.pathname === '/bootstrap/status' && request.method === 'GET') return bootstrapStatus(request, env, url);
   if (url.pathname === '/bootstrap/command' && request.method === 'GET') return bootstrapCommand(request, env, url);
   if (url.pathname === '/bootstrap/result' && request.method === 'GET') return bootstrapResult(request, env, url);
