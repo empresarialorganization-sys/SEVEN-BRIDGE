@@ -156,6 +156,11 @@ async function startBootstrap(request, env, url) {
     steps: [
       { action: 'open', url: claimUrl, args: { url: claimUrl }, temporary: false },
       { action: 'wait', ms: 10000 },
+      { action: 'wait', ms: 10000 },
+      { action: 'wait', ms: 10000 },
+      { action: 'wait', ms: 10000 },
+      { action: 'wait', ms: 10000 },
+      { action: 'wait', ms: 10000 },
     ],
   }));
   const pushed = await hub(env).fetch('https://device.internal/agent/push', {
