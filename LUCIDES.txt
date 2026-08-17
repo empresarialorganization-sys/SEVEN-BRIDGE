@@ -1,16 +1,15 @@
 PLANO LUCIDES — SEVENEX 1.1.0 / BRIDGE
-[x] Arquitetura account-bound, OAuth resource metadata, Core binding, contrato Operator e submissão SevenEx preparados.
-→ 1. REMOVER LEGADO 0.8 — eliminar qualquer rota, device padrão, trusted bypass ou compatibilidade destinada ao runtime antigo.
-[ ] 2. VALIDAR BRANCH LEGACY-FREE — CI, testes de isolamento e busca de resíduos ativos.
-[ ] 3. PROMOVER PARA MAIN — reconciliar sem reincorporar bootstrap ou fallback legado.
-[ ] 4. FECHAR OAUTH — habilitar OAuth Server + sevenex_access_token_hook e validar metadata/JWKS.
+[x] 1. Remover o runtime anterior: sem rota paralela, device padrão, bypass confiável ou compatibilidade no caminho SevenEx.
+[x] 2. Validar a arquitetura account-bound por testes de OAuth, HMAC interno, session binding e contrato Operator.
+[x] 3. Promover o mesmo caminho para main sem reincorporar fallback ou bootstrap.
+→ 4. FECHAR OAUTH — habilitar OAuth Server + sevenex_access_token_hook e validar metadata/JWKS.
 [ ] 5. FECHAR AUTENTICAÇÃO INTERNA — configurar SEVEN_OPERATOR_SHARED_SECRET no Core Production e Bridge runtime com o mesmo valor sem expor segredo.
 [ ] 6. CADASTRAR E TESTAR SEVENEX NO CHATGPT — exatamente seven_status, seven_command e seven_result.
 [ ] 7. E2E FINAL — Operator 1.1.0 autenticado e isolamento user/workspace/browser aprovado.
 
 REGRAS ATUAIS
-- Runtime legado 0.8/Opção SOS está aposentado e não pode existir como fallback ativo, rota de compatibilidade, trusted bypass, device padrão, bootstrap ou fonte operacional.
-- Não reescrever histórico Git antigo; remover resíduos do estado atual e da documentação operacional.
+- O runtime anterior está aposentado e não pode existir como fallback ativo, rota de compatibilidade, bypass, device padrão, bootstrap ou fonte operacional.
+- Não reescrever histórico Git antigo; a limpeza vale para o estado atual e documentação operacional.
 - SevenEx é a porta fina do ChatGPT/Codex; inteligência, conta e seleção de browser permanecem fora do MCP.
 - O caminho canônico é OAuth SevenEx -> Bridge valida JWT/audience -> HMAC interno -> Core resolve workspace/browser -> session_id/device_code -> DeviceHub/WebSocket -> Operator 1.1.0.
 - Token OAuth de usuário nunca é repassado ao Core nem a outro serviço.
@@ -18,6 +17,6 @@ REGRAS ATUAIS
 - Nunca selecionar browser por último visto; seleção é explícita por conta/workspace.
 - SevenEx expõe somente seven_status, seven_command e seven_result.
 - Versão, protocolo e capacidades incompatíveis bloqueiam comandos.
-- Não criar ponte temporária, rota de diagnóstico ou compatibilidade paralela após a aposentadoria do legado.
+- Não criar ponte temporária, rota de diagnóstico ou compatibilidade paralela.
 - Não expor segredos, credenciais, tokens ou URLs privadas de capacidade.
 - Preservar política de ilhas, foco protegido, acessibilidade e isolamento multiusuário.
