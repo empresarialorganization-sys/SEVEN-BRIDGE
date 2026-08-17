@@ -7,7 +7,7 @@ PLANO LUCIDES — SEVEN-BRIDGE
 [x] 6. Verificar o protocolo real do SEVEN Operator instalado e isolar a causa de comando live inválido.
 [x] 7. Normalizar comandos no Bridge para protocolo live v1 antes do WebSocket, preservando compatibilidade com a extensão instalada.
 [x] 8. Validar CI, publicar Bridge 1.0.2 e confirmar saúde do Worker.
-→ 9. BOOTSTRAP TEMPORÁRIO AUTORIZADO — usar o Bridge/Cloudflare e a extensão instalada como segundo fator para obter uma sessão curta de controle e concluir os cliques administrativos de configuração.
+→ 9. BOOTSTRAP TEMPORÁRIO AUTORIZADO — usar o Bridge/Cloudflare e a extensão instalada como segundo fator para obter uma sessão curta de controle e concluir os cliques administrativos de configuração; janela excepcional atual termina em 2026-08-17T05:35:00Z.
 [ ] 10. Validar status -> vision -> mission -> result pelo bootstrap, incluindo clique real e interação completa em página normal.
 [ ] 11. Configurar OAuth/hook/app/extensão reais e confirmar funcionamento ponta a ponta.
 [ ] 12. Remover integralmente o bootstrap temporário e só então seguir com a migração SevenEx/Operator 1.1.0.
@@ -22,6 +22,7 @@ REGRAS ATUAIS
 - O Bridge deve canonicalizar comandos live antes da entrega: protocolo v1, action obrigatório e compatibilidade controlada com wrappers antigos.
 - Manter compatibilidade existente até a substituição passar em teste ponta a ponta; só então remover o que ficou comprovadamente obsoleto.
 - Exceção temporária explicitamente autorizada em 2026-08-16: o Bridge pode expor um bootstrap de curta duração para concluir configuração administrativa enquanto SevenEx/Operator real ainda não está disponível no chat.
+- A janela excepcional atual termina em 2026-08-17T05:35:00Z; depois disso o bootstrap deve falhar fechado até ser removido.
 - O bootstrap não pode aceitar comando anônimo. A rota inicial só dispara uma página de claim assinada no navegador SEVEN já conectado. O controle posterior exige posse de um token HMAC curto gerado após esse claim; o token fica somente em fragmento # no navegador, não vai em URL/log do servidor, expira em 15 minutos e autoriza status/result e vision, visionDiff, mission ou sequence.
 - Dentro de mission/sequence, a extensão pode operar como a mão do usuário em páginas normais: click, doubleClick quando suportado pelo protocolo instalado, type, press, select, scroll, hover, open e navigate, inclusive botões administrativos e formulários já acessíveis à sessão do navegador.
 - Não tentar burlar restrições nativas do navegador/OS, permissões do site ou áreas protegidas que extensões não podem controlar; isso é limitação da plataforma, não regra de produto.
