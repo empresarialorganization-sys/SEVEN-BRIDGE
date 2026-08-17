@@ -2,7 +2,7 @@ import { normalizeLiveCommand } from './command.js';
 import { enforceIslandRules } from './policy.js';
 
 const TEMP_DEVICE_CODE = '493680';
-const BOOTSTRAP_DEADLINE_MS = Date.parse('2026-08-17T04:30:00Z');
+const BOOTSTRAP_DEADLINE_MS = Date.parse('2026-08-17T05:35:00Z');
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ALLOWED_ACTIONS = new Set(['vision', 'visionDiff', 'mission', 'sequence']);
 const MAX_BODY_BYTES = 64 * 1024;
