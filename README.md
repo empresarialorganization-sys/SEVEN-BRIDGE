@@ -1,78 +1,77 @@
-# SEVEN Bridge
+# SEVEN Bridge / SevenEx 1.1.0
 
-Cloudflare Worker que conecta o plugin privado **SEVEN Browser** à extensão **SEVEN Operator** instalada no Opera/Chrome.
+Cloudflare Worker que liga o app **SevenEx** do ChatGPT/Codex ao **SEVEN Operator** no navegador.
 
-## Arquitetura
+## Arquitetura canônica
 
-`ChatGPT -> SEVEN Browser -> MCP mínimo -> Cloudflare Worker -> Durable Object -> WebSocket -> Extensão`
+`ChatGPT/Codex -> SevenEx -> MCP fino -> SEVEN-BRIDGE -> Durable Object/WebSocket -> SEVEN Operator -> Eyes + Hands`
 
-O MCP é intencionalmente pequeno e sem espera longa:
+O MCP expõe somente:
 
-- `seven_status` — consulta conexão do dispositivo.
-- `seven_command` — enfileira um comando e devolve `commandId` imediatamente.
+- `seven_status` — consulta o browser explicitamente selecionado do usuário autenticado;
+- `seven_command` — enfileira exatamente um comando e devolve `commandId` imediatamente;
 - `seven_result` — consulta o resultado sem polling interno.
 
-## Dispositivo
+Inteligência, Jobs, Vault, providers e regras de produto não pertencem ao MCP do SevenEx.
 
-- Código visível: 6 dígitos e permanente até o usuário gerar outro.
-- Segredo do dispositivo: gerado localmente pela extensão e nunca usado como identificador público.
-- `SEVEN_AGENT_KEY`: segredo interno de serviço, configurado como Cloudflare Secret e nunca commitado.
-- Um Durable Object é criado por código de dispositivo.
-- Apenas uma conexão WebSocket do dispositivo permanece ativa por vez.
-- Revogar um dispositivo é definitivo para aquele código/segredo; a extensão deve gerar um novo código.
+## Identidade e autorização
 
-## Fronteira de autenticação
+O caminho canônico não recebe `device_code` nas tools e não contém dispositivo padrão.
 
-`SEVEN_AGENT_KEY` não é senha de usuário e não deve ser distribuída para usuários finais.
+1. ChatGPT obtém um token OAuth para o recurso SevenEx.
+2. O Bridge valida assinatura via JWKS, issuer, `client_id` e audience exata do recurso MCP.
+3. O token do usuário termina no Bridge; ele nunca é repassado ao Core.
+4. Bridge chama o Core por HMAC permanente serviço-a-serviço.
+5. Core resolve `user_id -> workspace ativo -> browser ativo -> session_id + device_code`.
+6. Bridge confirma que o Durable Object do device anuncia a mesma `session_id` antes de executar.
 
-- A URL estável `/mcp` não depende de `SEVEN_AGENT_KEY`; girar a chave não muda o endereço do MCP.
-- A chave continua podendo proteger integrações internas/servidor-servidor.
-- Contas de usuário, senhas, sessões e workspaces pertencem à camada de conta SEVEN/Core.
-- O Bridge não armazena nem valida senha bruta de usuário.
-- O caminho multiusuário deve receber identidade autenticada e resolver somente o dispositivo pertencente àquele usuário.
-- As rotas de compatibilidade existentes permanecem apenas para não quebrar o SEVEN Browser v1 já instalado durante a migração; não são o modelo de provisionamento para novos usuários.
+Quando um workspace possui mais de um browser, a seleção é explícita; nunca escolher automaticamente por “último visto”.
+
+## Operator contract
+
+Release coordenado: **SevenEx / Bridge / Operator 1.1.0**.
+
+O Operator registra no Bridge versão, protocolo e capacidades. O caminho canônico exige protocolo 1 e as capacidades `vision`, `visionDiff`, `mission` e `collectImages`. Versão incompatível bloqueia comandos em vez de executar silenciosamente com contrato errado.
+
+## Transporte
+
+Bridge/WebSocket é o transporte canônico de comandos e resultados do browser. Não existe fallback de dispositivo global nem rota MCP paralela.
 
 ## Higiene de abas
 
-O plugin aplica a política SEVEN antes de entregar missões à extensão:
-
-- trabalho em segundo plano;
-- reutilização de abas gerenciadas;
-- máximo de 3 abas novas por missão;
-- grupo recolhido `SEVEN`;
-- fechamento automático apenas das abas criadas pela SEVEN;
-- `activate` bloqueado;
-- ações diretas de `click/type/press/scroll/hover/select` são recusadas: devem ser enviadas como `mission` ou `sequence` para não escapar da política de ilha.
-
-## Ciclo de comandos
-
-- Comandos pendentes expiram após 10 minutos e não são reexecutados indefinidamente após reconexão.
-- Resultados ficam disponíveis por 24 horas e depois são limpos pelo Durable Object Alarm.
-- A extensão mantém cache local por `commandId`, evitando repetição durante reconexões válidas.
+O Bridge preserva a política SEVEN: trabalho em segundo plano, reutilização de abas gerenciadas, foco protegido e fechamento automático somente de abas criadas pela SEVEN. Ações mutáveis devem respeitar o contrato de missão/sequence.
 
 ## Endpoints
 
 - `GET /health`
 - `POST /v1/device/register`
-- `GET /v1/device/connect?code=XXXXXX&secret=...` — WebSocket da extensão
+- `GET /v1/device/connect?code=...&secret=...` — WebSocket da extensão
 - `POST /v1/device/revoke`
-- `GET /v1/status?code=XXXXXX` — Bearer `SEVEN_AGENT_KEY`
-- `POST /v1/push` — Bearer `SEVEN_AGENT_KEY`
-- `GET /v1/result?code=XXXXXX&id=<uuid>` — Bearer `SEVEN_AGENT_KEY`
-- `POST/GET/DELETE /mcp` — MCP estável; autenticação tratada pelo servidor
-- rotas de compatibilidade do plugin instalado — preservadas durante a migração, sem derivação de `SEVEN_AGENT_KEY`
+- `GET /v1/status?code=...` — serviço interno
+- `POST /v1/push` — serviço interno
+- `GET /v1/result?code=...&id=<uuid>` — serviço interno
+- `GET /.well-known/oauth-protected-resource/mcp` — metadata OAuth do SevenEx
+- `POST/GET/DELETE /mcp` — único MCP canônico SevenEx
+
+## Deploy gates
+
+Para o fluxo completo de usuário:
+
+- Supabase OAuth Server habilitado;
+- Custom Access Token Hook do SevenEx aplicado e habilitado;
+- `SEVEN_OPERATOR_SHARED_SECRET` configurado com o mesmo valor no Core Production e no Bridge runtime, sem expor o valor;
+- migrations de binding/multiworkspace aplicadas na ordem canônica;
+- Operator 1.1.0 distribuído por pacote publicado/assinado;
+- E2E de isolamento por usuário/workspace/browser aprovado.
 
 ## Desenvolvimento
 
-```bash
-npm install --ignore-scripts
-npm run check
-npm test
-npm run deploy
-```
+`npm install --ignore-scripts`
 
-O CI executa verificação de sintaxe e testes da política de abas em todo push/PR.
+`npm run check`
+
+`npm test`
 
 ## Segurança
 
-Nunca commite `SEVEN_AGENT_KEY`, segredo do dispositivo ou URLs-capability privadas. Não crie endpoints temporários de reparo/diagnóstico no Worker. A URL de conexão WebSocket ainda carrega o segredo do dispositivo na query por compatibilidade com a extensão instalada; migrar a autenticação do WebSocket para um handshake dedicado deve ser feito sem quebrar a extensão validada.
+Nunca commite segredo de serviço, segredo do device, token OAuth ou URL privada de capacidade. Não crie endpoints, tokens ou rotas temporárias de diagnóstico. OAuth bearer não pode atravessar a fronteira do Bridge para outro serviço.
