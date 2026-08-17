@@ -35,7 +35,7 @@ O Operator registra no Bridge versão, protocolo e capacidades. O caminho canôn
 
 ## Transporte
 
-Bridge/WebSocket é o transporte canônico de comandos e resultados do browser. Heartbeat/poll/result antigos do Core são compatibilidade temporária enquanto ainda houver consumidores reais; não são caminho novo.
+Bridge/WebSocket é o transporte canônico de comandos e resultados do browser. Não existe fallback de dispositivo global nem rota MCP paralela.
 
 ## Higiene de abas
 
@@ -51,21 +51,18 @@ O Bridge preserva a política SEVEN: trabalho em segundo plano, reutilização d
 - `POST /v1/push` — serviço interno
 - `GET /v1/result?code=...&id=<uuid>` — serviço interno
 - `GET /.well-known/oauth-protected-resource/mcp` — metadata OAuth do SevenEx
-- `POST/GET/DELETE /mcp` — MCP canônico SevenEx
-- uma rota de compatibilidade permanece apenas para a instalação antiga durante a migração
+- `POST/GET/DELETE /mcp` — único MCP canônico SevenEx
 
 ## Deploy gates
 
-Não publicar SevenEx 1.1.0 até:
+Para o fluxo completo de usuário:
 
-- Supabase OAuth Server estar habilitado;
-- Custom Access Token Hook do SevenEx estar aplicado e habilitado;
-- `SEVEN_OPERATOR_SHARED_SECRET` estar configurado com o mesmo valor no Core Production e no Bridge runtime, sem expor o valor;
-- migrations de binding/multiworkspace estarem aplicadas na ordem canônica;
-- Operator 1.1.0 estar distribuído por pacote publicado/assinado;
-- E2E de isolamento por usuário/workspace/browser estar aprovado.
-
-A compatibilidade antiga só é removida depois de substituição validada, busca de consumidores e rollback conhecido.
+- Supabase OAuth Server habilitado;
+- Custom Access Token Hook do SevenEx aplicado e habilitado;
+- `SEVEN_OPERATOR_SHARED_SECRET` configurado com o mesmo valor no Core Production e no Bridge runtime, sem expor o valor;
+- migrations de binding/multiworkspace aplicadas na ordem canônica;
+- Operator 1.1.0 distribuído por pacote publicado/assinado;
+- E2E de isolamento por usuário/workspace/browser aprovado.
 
 ## Desenvolvimento
 
