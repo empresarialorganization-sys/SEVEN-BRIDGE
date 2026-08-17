@@ -4,7 +4,7 @@ PLANO LUCIDES — RETOMADA / SevenEx 1.1.0
 [ ] 2. FECHAR BLOQUEIO — habilitar Supabase OAuth Server e sevenex_access_token_hook no Auth; a função existe e está permissionada no banco, mas o endpoint público ainda responde feature_disabled e o hook ainda não está ativo.
 [ ] 3. PREPARO TÉCNICO CONCLUÍDO / PUBLICAÇÃO PENDENTE pelos itens 1 e 2: SevenEx e Operator 1.1.0 estão prontos para o corte.
 [ ] 4. Rodar E2E multiusuário/workspace/browser após publicação real.
-[ ] 5. Remover legado sem consumidores e fechar publicação somente após E2E.
+[ ] 5. Remover somente legado comprovadamente sem consumidores após E2E; preservar o bootstrap secundário do Bridge até ordem explícita de Daniel para desativar/apagar.
 
 DETALHES JÁ CONCLUÍDOS
 [x] URL MCP estável e independente de segredo de serviço.
@@ -33,7 +33,9 @@ REGRAS ATUAIS
 - O hook sevenex_access_token_hook já existe no banco, mas só atua quando habilitado administrativamente no Auth junto do OAuth Server.
 - O app/extensão instalados anteriores permanecem funcionais durante a migração até o SevenEx/Operator 1.1.0 passarem E2E.
 - O pacote de submissão é metadata do mesmo SevenEx; não cria outro plugin, Bridge, MCP ou extensão.
-- Não criar rota, token, workflow ou endpoint temporário de diagnóstico.
+- Decisão explícita de Daniel em 2026-08-17: o bootstrap do Bridge pode permanecer disponível como contingência secundária sem prazo global, inclusive depois do E2E do SevenEx + Operator novos. Sessões/capacidades individuais continuam curtas e autenticadas. Desativar/apagar somente após nova ordem explícita de Daniel.
+- A ponte secundária não substitui o SevenEx canônico e não deve ser expandida silenciosamente para infraestrutura paralela.
+- Não criar rota, token, workflow ou endpoint temporário de diagnóstico fora da ponte secundária explicitamente autorizada.
 - Não expor segredo de serviço, segredo do device ou URL privada de capacidade em Git, logs, docs ou resposta.
 - Preservar política de ilhas: background-first, reutilização de abas gerenciadas, foco protegido e fechamento apenas das abas criadas pela SEVEN.
-- Compatibilidade antiga só sai após substituição funcional, E2E, busca de consumidores e rollback conhecido.
+- Outras compatibilidades antigas só saem após substituição funcional, E2E, busca de consumidores e rollback conhecido.
