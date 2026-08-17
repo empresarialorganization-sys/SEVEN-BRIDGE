@@ -38,7 +38,7 @@ async function currentStatus(hub) {
   return { response, data };
 }
 
-function createServer(hub, { legacy = false } = {}) {
+function createServer(hub) {
   const server = new McpServer(
     { name: 'SevenEx', version: MCP_VERSION },
     {
@@ -58,8 +58,7 @@ function createServer(hub, { legacy = false } = {}) {
     async () => {
       const { response, data } = await currentStatus(hub);
       if (!response.ok || data?.ok !== true) return textResult({ ok: false, error: 'device_status_failed' }, true);
-      const compatibility = legacy ? null : operatorCompatibility(data.meta);
-      return textResult(publicDeviceStatus(data, compatibility));
+      return textResult(publicDeviceStatus(data, operatorCompatibility(data.meta)));
     },
   );
 
@@ -76,10 +75,9 @@ function createServer(hub, { legacy = false } = {}) {
       const { response: statusResponse, data: status } = await currentStatus(hub);
       if (!statusResponse.ok || status?.ok !== true) return textResult({ ok: false, error: 'device_status_failed' }, true);
       if (status.connected !== true) return textResult({ ok: false, error: 'extension_offline' }, true);
-      if (!legacy) {
-        const compatibility = operatorCompatibility(status.meta);
-        if (!compatibility.ok) return textResult({ ok: false, error: 'operator_update_required', compatibility }, true);
-      }
+
+      const compatibility = operatorCompatibility(status.meta);
+      if (!compatibility.ok) return textResult({ ok: false, error: 'operator_update_required', compatibility }, true);
 
       let safeCommand;
       try {
@@ -116,7 +114,7 @@ function createServer(hub, { legacy = false } = {}) {
   return server;
 }
 
-export async function handleMcp(request, env, options = {}) {
+export async function handleMcp(request, env) {
   if (request.method === 'OPTIONS') {
     return new Response(null, {
       status: 204,
@@ -130,27 +128,20 @@ export async function handleMcp(request, env, options = {}) {
     });
   }
 
-  let hub;
-  let legacy = false;
-  if (options.trusted === true && /^\d{6}$/.test(String(options.legacyDeviceCode || ''))) {
-    legacy = true;
-    hub = hubForDevice(env, String(options.legacyDeviceCode));
-  } else {
-    const identity = await authenticateSevenExRequest(request, env);
-    if (!identity.ok) return oauthErrorResponse(identity.error, identity.status, env);
+  const identity = await authenticateSevenExRequest(request, env);
+  if (!identity.ok) return oauthErrorResponse(identity.error, identity.status, env);
 
-    const binding = await resolveSevenExBinding(identity, env);
-    if (!binding.ok) {
-      if (binding.status === 401) return oauthErrorResponse(binding.error, binding.status, env);
-      return serviceErrorResponse(binding.error, binding.status);
-    }
-
-    hub = hubForDevice(env, binding.deviceCode);
-    const verified = await verifyHubBinding(hub, binding);
-    if (!verified.ok) return serviceErrorResponse(verified.error, verified.status);
+  const binding = await resolveSevenExBinding(identity, env);
+  if (!binding.ok) {
+    if (binding.status === 401) return oauthErrorResponse(binding.error, binding.status, env);
+    return serviceErrorResponse(binding.error, binding.status);
   }
 
-  const server = createServer(hub, { legacy });
+  const hub = hubForDevice(env, binding.deviceCode);
+  const verified = await verifyHubBinding(hub, binding);
+  if (!verified.ok) return serviceErrorResponse(verified.error, verified.status);
+
+  const server = createServer(hub);
   const transport = new WebStandardStreamableHTTPServerTransport({ enableJsonResponse: true });
   await server.connect(transport);
   const response = await transport.handleRequest(request);
