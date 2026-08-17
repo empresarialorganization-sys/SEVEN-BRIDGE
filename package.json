@@ -1,16 +1,17 @@
 {
   "name": "seven-bridge-cloudflare",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "check": "node --check src/index.js && node --check src/policy.js && node --check src/mcp.js && node --check src/plugin-routes.js && node --check src/worker.js && node --check src/version.js",
+    "check": "node --check src/index.js && node --check src/binding.js && node --check src/command.js && node --check src/contract.js && node --check src/oauth.js && node --check src/policy.js && node --check src/mcp.js && node --check src/plugin-routes.js && node --check src/worker.js && node --check src/version.js",
     "test": "node --test"
   },
   "dependencies": {
     "@modelcontextprotocol/server": "2.0.0",
+    "jose": "^6.1.0",
     "zod": "^4.0.0"
   },
   "devDependencies": {
