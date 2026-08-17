@@ -125,9 +125,7 @@ async function controlSession(request, env, url) {
   return { ok: true, token };
 }
 
-function claimHtml() {
-  const nonce = randomToken(18);
-  const body = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SEVEN TEMP BOOTSTRAP</title></head><body><main><h1>SEVEN TEMP BOOTSTRAP</h1><pre id="state">CLAIMING</pre></main><script nonce="${nonce}">(() => { const out=document.getElementById('state'); const token=decodeURIComponent((location.hash||'').slice(1)); history.replaceState(null,'',location.pathname); if(!token){out.textContent='CLAIM_MISSING';return;} fetch('/bootstrap/claim-session',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({token}),credentials:'same-origin'}).then(async r=>({ok:r.ok,body:await r.json().catch(()=>null)})).then(({ok,body})=>{if(!ok||!body?.ok){out.textContent='CLAIM_FAILED '+(body?.error||'unknown');return;} out.textContent='READY\\nCSRF='+body.csrf+'\\nEXPIRES='+body.expiresAt; document.title='SEVEN TEMP READY';}).catch(()=>{out.textContent='CLAIM_FAILED network';}); })();</script></body></html>`;
+function htmlResponse(body, nonce) {
   return new Response(body, {
     status: 200,
     headers: {
@@ -140,6 +138,137 @@ function claimHtml() {
   });
 }
 
+function claimHtml() {
+  const nonce = randomToken(18);
+  const body = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SEVEN TEMP BOOTSTRAP</title></head><body><main><h1>SEVEN TEMP BOOTSTRAP</h1><pre id="state">CLAIMING</pre></main><script nonce="${nonce}">(() => { const out=document.getElementById('state'); const token=decodeURIComponent((location.hash||'').slice(1)); history.replaceState(null,'',location.pathname); if(!token){out.textContent='CLAIM_MISSING';return;} fetch('/bootstrap/claim-session',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({token}),credentials:'same-origin'}).then(async r=>({ok:r.ok,body:await r.json().catch(()=>null)})).then(({ok,body})=>{if(!ok||!body?.ok){out.textContent='CLAIM_FAILED '+(body?.error||'unknown');return;} out.textContent='READY\\nEXPIRES='+body.expiresAt; document.title='SEVEN TEMP READY';}).catch(()=>{out.textContent='CLAIM_FAILED network';}); })();</script></body></html>`;
+  return htmlResponse(body, nonce);
+}
+
+function controlHtml() {
+  const nonce = randomToken(18);
+  const body = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SEVEN TEMP CONTROL</title></head><body><main><h1>SEVEN TEMP CONTROL</h1><pre id="state">INITIALIZING</pre></main><script nonce="${nonce}">(() => {
+    const out = document.getElementById('state');
+    const CSRF_KEY = 'seven_bootstrap_csrf';
+    const EXP_KEY = 'seven_bootstrap_expires';
+    let running = false;
+
+    function decode(value) {
+      const normalized = String(value || '').replace(/-/g, '+').replace(/_/g, '/');
+      const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
+      const binary = atob(padded);
+      const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+      return new TextDecoder().decode(bytes);
+    }
+
+    function encode(value) {
+      const bytes = new TextEncoder().encode(value);
+      let binary = '';
+      for (const byte of bytes) binary += String.fromCharCode(byte);
+      return btoa(binary).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/g, '');
+    }
+
+    async function readJson(response) {
+      const body = await response.json().catch(() => null);
+      return { ok: response.ok, status: response.status, body };
+    }
+
+    function render(payload, title) {
+      out.textContent = JSON.stringify(payload);
+      document.title = title || 'SEVEN TEMP RESULT';
+    }
+
+    async function session() {
+      const cached = sessionStorage.getItem(CSRF_KEY);
+      if (cached) return { ok: true, csrf: cached, expiresAt: sessionStorage.getItem(EXP_KEY) || null };
+      const response = await fetch('/bootstrap/session', { credentials: 'same-origin', cache: 'no-store' });
+      const result = await readJson(response);
+      if (!result.ok || !result.body?.ok || !result.body?.csrf) return { ok: false, result };
+      sessionStorage.setItem(CSRF_KEY, result.body.csrf);
+      sessionStorage.setItem(EXP_KEY, result.body.expiresAt || '');
+      return { ok: true, csrf: result.body.csrf, expiresAt: result.body.expiresAt || null };
+    }
+
+    async function handle() {
+      if (running) return;
+      running = true;
+      try {
+        const raw = (location.hash || '').slice(1);
+        if (!raw) {
+          const current = await session();
+          if (current.ok) render({ ok: true, status: 'ready', expiresAt: current.expiresAt }, 'SEVEN TEMP READY');
+          else render({ ok: false, status: 'waiting_claim' }, 'SEVEN TEMP CONTROL');
+          return;
+        }
+
+        history.replaceState(null, '', location.pathname);
+        let payload;
+        try { payload = JSON.parse(decode(raw)); }
+        catch { render({ ok: false, error: 'control_payload_invalid' }); return; }
+
+        if (typeof payload?.token === 'string' && payload.token) {
+          const response = await fetch('/bootstrap/claim-session', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ token: payload.token }),
+            credentials: 'same-origin',
+            cache: 'no-store',
+          });
+          const result = await readJson(response);
+          if (!result.ok || !result.body?.ok || !result.body?.csrf) {
+            sessionStorage.removeItem(CSRF_KEY);
+            sessionStorage.removeItem(EXP_KEY);
+            render({ ok: false, status: result.status, error: result.body?.error || 'claim_failed' });
+            return;
+          }
+          sessionStorage.setItem(CSRF_KEY, result.body.csrf);
+          sessionStorage.setItem(EXP_KEY, result.body.expiresAt || '');
+          render({ ok: true, status: 'ready', expiresAt: result.body.expiresAt || null }, 'SEVEN TEMP READY');
+          return;
+        }
+
+        const current = await session();
+        if (!current.ok) {
+          render({ ok: false, status: current.result?.status || 401, error: current.result?.body?.error || 'bootstrap_session_required' });
+          return;
+        }
+
+        const csrf = encodeURIComponent(current.csrf);
+        const op = String(payload?.op || 'status');
+        let requestUrl;
+        if (op === 'status') {
+          requestUrl = '/bootstrap/status?csrf=' + csrf;
+        } else if (op === 'command') {
+          const encoded = encode(JSON.stringify(payload.command || {}));
+          requestUrl = '/bootstrap/command?csrf=' + csrf + '&p=' + encodeURIComponent(encoded);
+        } else if (op === 'result') {
+          requestUrl = '/bootstrap/result?csrf=' + csrf + '&id=' + encodeURIComponent(String(payload.id || ''));
+        } else if (op === 'end') {
+          requestUrl = '/bootstrap/end?csrf=' + csrf;
+        } else {
+          render({ ok: false, error: 'control_op_not_allowed' });
+          return;
+        }
+
+        const response = await fetch(requestUrl, { credentials: 'same-origin', cache: 'no-store' });
+        const result = await readJson(response);
+        if (op === 'end' && result.ok) {
+          sessionStorage.removeItem(CSRF_KEY);
+          sessionStorage.removeItem(EXP_KEY);
+        }
+        render({ ok: result.ok, status: result.status, body: result.body });
+      } catch {
+        render({ ok: false, error: 'control_network_error' });
+      } finally {
+        running = false;
+      }
+    }
+
+    window.addEventListener('hashchange', () => { void handle(); });
+    void handle();
+  })();</script></body></html>`;
+  return htmlResponse(body, nonce);
+}
+
 async function startBootstrap(request, env, url) {
   const statusResponse = await hub(env).fetch('https://device.internal/agent/status');
   const status = await responseJson(statusResponse);
@@ -148,20 +277,13 @@ async function startBootstrap(request, env, url) {
   }
 
   const token = await signControl(env);
-  const claimUrl = `${url.origin}/bootstrap/claim#${encodeURIComponent(token)}`;
+  const controlPayload = base64UrlEncode(JSON.stringify({ token }));
+  const controlUrl = `${url.origin}/bootstrap/control#${controlPayload}`;
   const command = enforceIslandRules(normalizeLiveCommand({
     v: 1,
     action: 'mission',
-    execution: { reuseTabs: false, maxManagedTabs: 8, autoCloseTemporary: false },
-    steps: [
-      { action: 'open', url: claimUrl, args: { url: claimUrl }, temporary: false },
-      { action: 'wait', ms: 10000 },
-      { action: 'wait', ms: 10000 },
-      { action: 'wait', ms: 10000 },
-      { action: 'wait', ms: 10000 },
-      { action: 'wait', ms: 10000 },
-      { action: 'wait', ms: 10000 },
-    ],
+    execution: { reuseTabs: true, maxManagedTabs: 8, autoCloseTemporary: false },
+    steps: [{ action: 'open', url: controlUrl, args: { url: controlUrl }, temporary: false }],
   }));
   const pushed = await hub(env).fetch('https://device.internal/agent/push', {
     method: 'POST',
@@ -273,6 +395,7 @@ export async function handleTemporaryBootstrap(request, env) {
   if (url.pathname === '/bootstrap/start' && request.method === 'GET') return startBootstrap(request, env, url);
   if (url.pathname === '/bootstrap/start-result' && request.method === 'GET') return startResult(env, url);
   if (url.pathname === '/bootstrap/claim' && request.method === 'GET') return claimHtml();
+  if (url.pathname === '/bootstrap/control' && request.method === 'GET') return controlHtml();
   if (url.pathname === '/bootstrap/claim-session' && request.method === 'POST') return claimSession(request, env);
   if (url.pathname === '/bootstrap/session' && request.method === 'GET') return sessionInfo(request, env);
   if (url.pathname === '/bootstrap/status' && request.method === 'GET') return bootstrapStatus(request, env, url);
