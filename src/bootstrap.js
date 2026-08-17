@@ -164,6 +164,23 @@ async function startBootstrap(request, env, url) {
   return json({ ok: pushed.ok, status: 'claim_dispatched', commandId: result.commandId || null, delivered: result.delivered || 0 }, pushed.ok ? 202 : pushed.status);
 }
 
+async function startResult(env, url) {
+  const id = String(url.searchParams.get('id') || '');
+  if (!UUID_RE.test(id)) return json({ ok: false, error: 'invalid_command_id' }, 400);
+  const response = await hub(env).fetch(`https://device.internal/agent/result?id=${encodeURIComponent(id)}`);
+  const data = await responseJson(response);
+  if (!response.ok) return json({ ok: false, error: 'bootstrap_result_failed' }, response.status);
+  if (data.status !== 'completed') return json({ ok: true, status: data.status });
+  const payload = data?.result?.payload || null;
+  return json({
+    ok: true,
+    status: 'completed',
+    outcome: payload && typeof payload === 'object'
+      ? { status: payload.status || null, error: payload.error || null }
+      : { status: null, error: null },
+  });
+}
+
 async function claimSession(request, env) {
   let body;
   try { body = await request.json(); } catch { body = null; }
@@ -235,6 +252,7 @@ export async function handleTemporaryBootstrap(request, env) {
   if (String(env.SEVEN_AGENT_KEY || '').length < 32) return json({ ok: false, error: 'bootstrap_auth_not_configured' }, 503);
 
   if (url.pathname === '/bootstrap/start' && request.method === 'GET') return startBootstrap(request, env, url);
+  if (url.pathname === '/bootstrap/start-result' && request.method === 'GET') return startResult(env, url);
   if (url.pathname === '/bootstrap/claim' && request.method === 'GET') return claimHtml();
   if (url.pathname === '/bootstrap/claim-session' && request.method === 'POST') return claimSession(request, env);
   if (url.pathname === '/bootstrap/status' && request.method === 'GET') return bootstrapStatus(request, env, url);
