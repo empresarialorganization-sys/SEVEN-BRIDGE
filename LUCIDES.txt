@@ -7,29 +7,31 @@ PLANO LUCIDES — SEVEN-BRIDGE
 [x] 6. Verificar o protocolo real do SEVEN Operator instalado e isolar a causa de comando live inválido.
 [x] 7. Normalizar comandos no Bridge para protocolo live v1 antes do WebSocket, preservando compatibilidade com a extensão instalada.
 [x] 8. Validar CI, publicar Bridge 1.0.2 e confirmar saúde do Worker.
-→ 9. BOOTSTRAP TEMPORÁRIO AUTORIZADO — manter /bootstrap/control canônico e um fallback explícito, estreito e query-gated para Opera/Operator 0.8.0 até SevenEx + Operator novos passarem E2E real.
-[ ] 10. Validar status -> vision -> mission -> result pelo bootstrap, incluindo clique real e interação completa em página normal.
+→ 9. PONTE SECUNDÁRIA AUTORIZADA — manter /bootstrap/control canônico e o fallback explícito, estreito e query-gated para Opera/Operator 0.8.0 como contingência sem prazo global; remoção somente após ordem explícita de Daniel.
+[ ] 10. Validar status -> vision -> mission -> result pelo bootstrap, incluindo interação real em página normal e documentar limitações específicas do Hands 0.8.0.
 [ ] 11. Configurar OAuth/hook/app/extensão reais e confirmar funcionamento ponta a ponta.
-[ ] 12. Desativar e remover integralmente o bootstrap temporário assim que SevenEx + Operator novos passarem E2E real.
+[ ] 12. Após SevenEx + Operator novos passarem E2E real, manter a ponte apenas como contingência secundária até Daniel mandar desativar/apagar explicitamente.
 
 REGRAS ATUAIS
 - Não desativar nem quebrar o SEVEN Browser v1 atualmente instalado durante esta mudança.
 - A URL pública/estável do MCP não pode depender de SEVEN_AGENT_KEY.
 - SEVEN_AGENT_KEY é segredo interno de serviço; não é senha de usuário e não deve aparecer em URL, Git, logs ou resposta.
-- Cada usuário deve autenticar pela própria conta SEVEN; senha bruta não é armazenada nem validada pelo Bridge.
+- Cada usuário deve autenticar pela própria conta SEVEN; senha bruta nunca é armazenada nem validada pelo Bridge.
 - O caminho multiusuário deve resolver o dispositivo do usuário autenticado e nunca misturar usuários, sessões ou dispositivos.
 - As rotas de compatibilidade existentes servem somente para preservar a instalação atual durante a migração; não devem ser copiadas como modelo de novos usuários.
 - O Bridge deve canonicalizar comandos live antes da entrega: protocolo v1, action obrigatório e compatibilidade controlada com wrappers antigos.
-- Manter compatibilidade existente até a substituição passar em teste ponta a ponta; só então remover o que ficou comprovadamente obsoleto.
-- Exceção temporária autorizada: o bootstrap existe somente até SevenEx + Operator novos passarem E2E real; depois deve ser desativado e removido, conforme decisão explícita de Daniel nesta sessão.
-- /bootstrap/control sem query usa somente a implementação canônica em bootstrap.js; nenhum handler antigo pode interceptá-la silenciosamente.
-- Compatibilidade excepcional com Opera/Operator 0.8.0: /bootstrap/control?compat=1 pode ser atendido pelo handler temporário antigo, e somente /bootstrap/execute POST é roteado ao mesmo executor. Esse fallback existe porque o cookie HttpOnly do fluxo canônico não persistiu no Opera atual.
+- Manter compatibilidade existente até a substituição passar em teste ponta a ponta; só então remover o que ficou comprovadamente obsoleto, exceto a ponte secundária explicitamente autorizada abaixo.
+- Decisão explícita de Daniel em 2026-08-17: a ponte bootstrap/Opera 0.8.0 pode permanecer disponível secundariamente sem prazo global. Deploy, E2E ou publicação do SevenEx/Operator novos NÃO autorizam sua remoção. Desativar/apagar somente após nova ordem explícita de Daniel.
+- A ponte secundária não substitui a arquitetura principal SevenEx + MCP fino + Bridge + Operator e não deve ser expandida silenciosamente para infraestrutura paralela.
+- /bootstrap/control sem query usa a implementação canônica em bootstrap.js; nenhum handler antigo pode interceptá-la silenciosamente.
+- Compatibilidade excepcional com Opera/Operator 0.8.0: /bootstrap/control?compat=1 pode ser atendido pelo handler de compatibilidade, e somente /bootstrap/execute POST é roteado ao mesmo executor.
 - O fallback recebe capacidade HMAC curta exclusivamente no fragmento # da página, remove o fragmento antes da chamada e envia a capacidade somente em POST same-origin para /bootstrap/execute; não guarda token em query/path, não cria sessão persistente e não aceita Origin externo.
-- Toda capacidade expira em 15 minutos e é validada por HMAC antes de status/command/result. Nunca expor capacidade em chat, Git ou log.
+- Toda sessão/capacidade individual continua expirando em 15 minutos e é validada por HMAC. "Sem prazo global" significa disponibilidade da ponte, não token eterno.
 - /bootstrap/start só opera quando o navegador SEVEN já está conectado.
-- Não manter missão longa de espera para segurar aba: na 0.8.0 isso prejudica a conexão WebSocket. O bootstrap deve entregar comandos curtos e deixar a extensão livre para heartbeat/reconexão.
+- Não manter missão longa de espera para segurar aba: na 0.8.0 isso prejudica a conexão WebSocket. Entregar comandos curtos e deixar a extensão livre para heartbeat/reconexão.
 - Eyes permitidos: vision e visionDiff, sempre sobre aba-alvo explícita e sem inferir estado não observado.
 - Hands permitidos: mission e sequence; dentro deles a extensão pode operar em páginas normais com click, doubleClick quando suportado, type, press, select, scroll, hover, open e navigate.
+- Limitação comprovada nesta execução: no Supabase OAuth Server, Operator 0.8.0 recebe e conclui missões de click/press, mas os formatos testados de role/text/selector não acionaram o switch; não declarar configuração alterada sem verificação visual/estrutural posterior.
 - Não tentar burlar restrições nativas do navegador/OS, permissões do site ou áreas protegidas que extensões não podem controlar.
 - Fora dessa exceção, não criar rota, token, workflow ou endpoint temporário de diagnóstico.
 - Preservar política de ilhas: background-first, sem roubar foco, reutilização de abas gerenciadas e fechamento apenas de abas criadas pela SEVEN.
