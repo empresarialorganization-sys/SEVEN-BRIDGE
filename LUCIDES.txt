@@ -7,10 +7,10 @@ PLANO LUCIDES — SEVEN-BRIDGE
 [x] 6. Verificar o protocolo real do SEVEN Operator instalado e isolar a causa de comando live inválido.
 [x] 7. Normalizar comandos no Bridge para protocolo live v1 antes do WebSocket, preservando compatibilidade com a extensão instalada.
 [x] 8. Validar CI, publicar Bridge 1.0.2 e confirmar saúde do Worker.
-→ 9. BOOTSTRAP SECUNDÁRIO AUTORIZADO — manter o Bridge/Cloudflare como caminho secundário de Eyes + Hands sem prazo global; sessões individuais continuam curtas e autenticadas.
+→ 9. BOOTSTRAP TEMPORÁRIO AUTORIZADO — manter Bridge/Cloudflare como Eyes + Hands temporários até SevenEx + Operator novos passarem E2E real; sessões individuais são curtas e autenticadas.
 [ ] 10. Validar status -> vision -> mission -> result pelo bootstrap, incluindo clique real e interação completa em página normal.
 [ ] 11. Configurar OAuth/hook/app/extensão reais e confirmar funcionamento ponta a ponta.
-[ ] 12. Após SevenEx + Operator novos passarem E2E, manter o bootstrap apenas como contingência secundária e removê-lo somente após ordem explícita de Daniel.
+[ ] 12. Desativar e remover integralmente o bootstrap temporário assim que SevenEx + Operator novos passarem E2E real.
 
 REGRAS ATUAIS
 - Não desativar nem quebrar o SEVEN Browser v1 atualmente instalado durante esta mudança.
@@ -20,16 +20,16 @@ REGRAS ATUAIS
 - O caminho multiusuário deve resolver o dispositivo do usuário autenticado e nunca misturar usuários, sessões ou dispositivos.
 - As rotas de compatibilidade existentes servem somente para preservar a instalação atual durante a migração; não devem ser copiadas como modelo de novos usuários.
 - O Bridge deve canonicalizar comandos live antes da entrega: protocolo v1, action obrigatório e compatibilidade controlada com wrappers antigos.
-- Manter compatibilidade existente até a substituição passar em teste ponta a ponta; só então remover o que ficou comprovadamente obsoleto, exceto o bootstrap secundário autorizado abaixo.
-- Exceção autorizada em 2026-08-17: o Bridge pode manter o bootstrap operacional como caminho secundário sem prazo global até ordem explícita de Daniel para removê-lo.
-- O bootstrap secundário não substitui SevenEx + Operator como arquitetura principal e não deve ser expandido silenciosamente para nova infraestrutura paralela.
-- O bootstrap não pode aceitar comando anônimo. A rota inicial só pode entregar um token HMAC curto ao navegador SEVEN já conectado; esse token deve existir apenas no fragmento inicial da aba de controle, ser trocado por cookie HttpOnly + CSRF no próprio navegador e removido da URL imediatamente depois do claim.
-- A aba /bootstrap/control deve permanecer como aba SEVEN gerenciada durante a sessão e aceitar apenas comandos sem segredo no fragmento; sessões individuais expiram em 15 minutos e precisam ser renovadas pelo mesmo fluxo autenticado.
-- A rota /bootstrap/session pode retornar somente csrf e expiresAt para o mesmo navegador que já possui cookie HttpOnly válido; não retorna token e não cria sessão por conta própria.
-- Eyes permitidos no bootstrap secundário: vision e visionDiff, sempre sobre a aba-alvo explícita e sem inferir estado não observado.
-- Hands permitidos no bootstrap secundário: mission e sequence; dentro deles a extensão pode operar em páginas normais com click, doubleClick quando suportado, type, press, select, scroll, hover, open e navigate.
-- Não tentar burlar restrições nativas do navegador/OS, permissões do site ou áreas protegidas que extensões não podem controlar; isso é limitação da plataforma, não regra de produto.
-- O bootstrap não cria novo segredo de ambiente, não revela SEVEN_AGENT_KEY/device secret e não deve ser removido automaticamente por prazo, deploy ou conclusão de E2E; remoção exige ordem explícita de Daniel.
+- Manter compatibilidade existente até a substituição passar em teste ponta a ponta; só então remover o que ficou comprovadamente obsoleto.
+- Exceção temporária autorizada: o Bridge pode manter o bootstrap operacional somente até SevenEx + Operator novos passarem E2E real; depois deve ser desativado e removido.
+- O bootstrap não pode aceitar comando anônimo. A rota inicial só opera quando o navegador SEVEN já está conectado e gera capacidade HMAC curta de 15 minutos.
+- Quando o claim por cookie HttpOnly estiver disponível, /bootstrap/session pode retornar somente csrf e expiresAt ao mesmo navegador; não retorna token e não cria sessão por conta própria.
+- Para compatibilidade com o Operator 0.8.0 instalado, o controle temporário por /bootstrap/control pode usar a capacidade curta somente no fragmento # da página; o fragmento é removido pelo JavaScript antes da chamada ao servidor e nunca deve ser exposto em chat, Git ou log.
+- Não manter missão longa de espera para segurar aba de claim: na 0.8.0 isso prejudica a conexão WebSocket. O bootstrap deve entregar comandos curtos e deixar a extensão livre para heartbeat/reconexão.
+- Eyes permitidos: vision e visionDiff, sempre sobre aba-alvo explícita e sem inferir estado não observado.
+- Hands permitidos: mission e sequence; dentro deles a extensão pode operar em páginas normais com click, doubleClick quando suportado, type, press, select, scroll, hover, open e navigate.
+- Não tentar burlar restrições nativas do navegador/OS, permissões do site ou áreas protegidas que extensões não podem controlar.
+- O bootstrap não cria novo segredo de ambiente e não revela SEVEN_AGENT_KEY/device secret.
 - Fora dessa exceção, não criar rota, token, workflow ou endpoint temporário de diagnóstico.
 - Preservar política de ilhas: background-first, sem roubar foco, reutilização de abas gerenciadas e fechamento apenas de abas criadas pela SEVEN.
 - Antes de criar, verificar se já existe solução equivalente; não duplicar arquitetura.
