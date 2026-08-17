@@ -3,6 +3,11 @@
   "name": "seven-bridge",
   "main": "src/worker.js",
   "compatibility_date": "2026-08-14",
+  "vars": {
+    "SEVEN_PUBLIC_URL": "https://seven-bridge.carlosdh12335.workers.dev",
+    "SEVEN_CORE_URL": "https://seven-cloud-core.vercel.app",
+    "SEVEN_SUPABASE_AUTH_URL": "https://duzwnryljrjyxavbjmdv.supabase.co/auth/v1"
+  },
   "durable_objects": {
     "bindings": [
       {
