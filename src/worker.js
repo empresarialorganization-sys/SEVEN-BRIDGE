@@ -1,6 +1,5 @@
 import bridge, { DeviceHub } from './index.js';
 import { handleTemporaryBootstrap } from './bootstrap.js';
-import { handleTemporaryCapabilityControl } from './bootstrap-control.js';
 import { handleMcp } from './mcp.js';
 import { classifyMcpPath } from './plugin-routes.js';
 
@@ -8,9 +7,6 @@ export { DeviceHub };
 
 export default {
   async fetch(request, env, ctx) {
-    const controlResponse = await handleTemporaryCapabilityControl(request, env);
-    if (controlResponse) return controlResponse;
-
     const bootstrapResponse = await handleTemporaryBootstrap(request, env);
     if (bootstrapResponse) return bootstrapResponse;
 
