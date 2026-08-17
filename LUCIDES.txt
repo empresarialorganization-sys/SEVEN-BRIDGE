@@ -23,6 +23,7 @@ REGRAS ATUAIS
 - Manter compatibilidade existente até a substituição passar em teste ponta a ponta; só então remover o que ficou comprovadamente obsoleto.
 - Exceção temporária explicitamente autorizada em 2026-08-16: o Bridge pode manter um bootstrap operacional somente até SevenEx + Operator novos passarem E2E real.
 - O bootstrap não pode aceitar comando anônimo. A rota inicial só dispara uma página de claim assinada no navegador SEVEN já conectado. O controle posterior exige posse de um token HMAC curto gerado após esse claim; o token fica somente em fragmento # no navegador, não vai em URL/log do servidor e a sessão individual expira em 15 minutos.
+- O claim do bootstrap deve abrir em aba SEVEN dedicada, sem reutilizar outra aba gerenciada e sem auto-close durante a sessão; essa aba pode ser fechada ao encerrar/expirar a sessão.
 - A rota temporária /bootstrap/session pode retornar somente csrf e expiresAt para o mesmo navegador que já possui cookie HttpOnly válido; não retorna token e não cria sessão por conta própria.
 - Eyes temporários permitidos no bootstrap: vision e visionDiff, sempre sobre a aba-alvo explícita e sem inferir estado não observado.
 - Hands temporários permitidos no bootstrap: mission e sequence; dentro deles a extensão pode operar em páginas normais com click, doubleClick quando suportado, type, press, select, scroll, hover, open e navigate.
