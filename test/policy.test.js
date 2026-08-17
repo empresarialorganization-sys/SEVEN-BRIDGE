@@ -15,6 +15,16 @@ test('mission always receives strict island policy', () => {
   assert.equal(original.steps[0].args.active, true);
 });
 
+test('mission and sequence preserve normal page interaction steps', () => {
+  for (const action of ['click', 'type', 'press', 'scroll', 'hover', 'select']) {
+    const mission = enforceIslandRules({ v: 1, action: 'mission', steps: [{ action, target: { text: 'Example' } }] });
+    assert.equal(mission.steps[0].action, action);
+
+    const sequence = enforceIslandRules({ v: 1, action: 'sequence', steps: [{ action, target: { text: 'Example' } }] });
+    assert.equal(sequence.steps[0].action, action);
+  }
+});
+
 test('nested activation is blocked', () => {
   assert.throws(
     () => enforceIslandRules({ v: 1, action: 'mission', steps: [{ action: 'if', then: [{ action: 'activate' }] }] }),
