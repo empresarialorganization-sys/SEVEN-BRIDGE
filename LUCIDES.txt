@@ -1,21 +1,20 @@
-PLANO LUCIDES — SEVEN-BRIDGE / CORTE SEVENEX 1.1.0
-[x] Arquitetura SevenEx account-bound, MCP fino, binding Core e contrato Operator 1.1.0 preparados na branch canônica.
-→ 1. REMOVER LEGADO 0.8 — eliminar bootstrap, rotas de compatibilidade, device padrão e referências ativas do runtime legado.
-[ ] 2. PROMOVER SEVENEX 1.1.0 — reconciliar a branch refactor/sevenex-thin-mcp-v1 com main sem reincorporar legado.
-[ ] 3. FECHAR OAUTH — habilitar Supabase OAuth Server e sevenex_access_token_hook e validar metadata/JWKS.
+PLANO LUCIDES — SEVEN-BRIDGE / SEVENEX 1.1.0
+[x] 1. Remover o runtime anterior do estado ativo: bootstrap, controles temporários, rotas MCP paralelas, bypass confiável e device padrão eliminados.
+[x] 2. Promover o caminho SevenEx account-bound para main: /mcp único, OAuth no Bridge, binding no Core, contrato Operator 1.1.0, metadata OAuth e testes de isolamento.
+→ 3. FECHAR OAUTH — habilitar Supabase OAuth Server e sevenex_access_token_hook e validar metadata/JWKS.
 [ ] 4. FECHAR AUTENTICAÇÃO INTERNA — configurar SEVEN_OPERATOR_SHARED_SECRET no Core Production e Bridge runtime com o mesmo valor, sem expor o segredo.
 [ ] 5. CADASTRAR SEVENEX NO CHATGPT — conectar /mcp, autenticar conta e validar exatamente seven_status, seven_command e seven_result.
 [ ] 6. E2E FINAL — Operator 1.1.0 autenticado, isolamento user/workspace/browser e status -> command -> result aprovados.
 
 REGRAS ATUAIS
-- Runtime legado 0.8/Opção SOS está aposentado por decisão explícita do usuário e não pode permanecer como fallback ativo, bootstrap, rota de compatibilidade, device padrão ou fonte operacional.
-- Não reescrever histórico Git antigo; remover o legado do estado atual, produção, documentação operacional e fontes ativas.
+- O runtime anterior está aposentado e não pode ser recriado como fallback, bootstrap, rota MCP paralela, bypass ou device padrão.
+- Não reescrever histórico Git antigo; a limpeza vale para estado atual, produção, documentação operacional e fontes ativas.
 - O caminho canônico é ChatGPT/Codex -> SevenEx -> /mcp -> OAuth no Bridge -> HMAC interno -> Core -> DeviceHub/WebSocket -> Operator 1.1.0.
 - SevenEx expõe somente seven_status, seven_command e seven_result.
-- device_code identifica execução; não é identidade e nunca entra no schema público das tools nem pode existir como device padrão global.
+- device_code identifica execução; não é identidade, nunca entra no schema público e não pode existir como device padrão global.
 - Browser ativo é selecionado explicitamente por user_id + workspace_id + session_id; nunca escolher por último visto.
 - OAuth bearer do usuário termina no Bridge; nunca repassar bearer ao Core.
 - Bridge -> Core usa somente autenticação serviço-a-serviço; nunca registrar ou expor o valor do segredo.
-- Não recriar bootstrap, endpoint temporário ou compatibilidade paralela para substituir o legado removido.
+- Não criar endpoint temporário ou compatibilidade paralela para contornar gates administrativos.
 - Preservar política de ilhas, foco protegido, acessibilidade, isolamento multiusuário e contrato de versão/protocolo/capacidades.
-- Antes de publicar, validar CI e buscar referências residuais ativas ao legado; histórico Git não conta como resíduo ativo.
+- CI e produção devem ser revalidados após toda mudança material antes de declarar conclusão.
