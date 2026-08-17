@@ -7,7 +7,7 @@ PLANO LUCIDES — SEVEN-BRIDGE
 [x] 6. Verificar o protocolo real do SEVEN Operator instalado e isolar a causa de comando live inválido.
 [x] 7. Normalizar comandos no Bridge para protocolo live v1 antes do WebSocket, preservando compatibilidade com a extensão instalada.
 [x] 8. Validar CI, publicar Bridge 1.0.2 e confirmar saúde do Worker.
-→ 9. BOOTSTRAP TEMPORÁRIO AUTORIZADO — manter um único /bootstrap/control canônico com sessão curta segura e fallback compatível com Opera/Operator 0.8.0 até SevenEx + Operator novos passarem E2E real.
+→ 9. BOOTSTRAP TEMPORÁRIO AUTORIZADO — manter /bootstrap/control canônico e um fallback explícito, estreito e query-gated para Opera/Operator 0.8.0 até SevenEx + Operator novos passarem E2E real.
 [ ] 10. Validar status -> vision -> mission -> result pelo bootstrap, incluindo clique real e interação completa em página normal.
 [ ] 11. Configurar OAuth/hook/app/extensão reais e confirmar funcionamento ponta a ponta.
 [ ] 12. Desativar e remover integralmente o bootstrap temporário assim que SevenEx + Operator novos passarem E2E real.
@@ -22,12 +22,11 @@ REGRAS ATUAIS
 - O Bridge deve canonicalizar comandos live antes da entrega: protocolo v1, action obrigatório e compatibilidade controlada com wrappers antigos.
 - Manter compatibilidade existente até a substituição passar em teste ponta a ponta; só então remover o que ficou comprovadamente obsoleto.
 - Exceção temporária autorizada: o bootstrap existe somente até SevenEx + Operator novos passarem E2E real; depois deve ser desativado e removido, conforme decisão explícita de Daniel nesta sessão.
-- /bootstrap/control tem uma única implementação canônica em bootstrap.js; handler paralelo antigo não pode interceptar a rota. O arquivo antigo só pode ser apagado depois de confirmar zero referências.
-- /bootstrap/start só opera quando o navegador SEVEN já está conectado e gera capacidade HMAC curta de 15 minutos.
-- /bootstrap/control recebe a capacidade curta apenas no fragmento # e remove esse fragmento imediatamente antes de qualquer chamada ao servidor.
-- Caminho preferencial: trocar a capacidade por cookie HttpOnly + CSRF e consultar /bootstrap/session antes de cada operação.
-- Fallback temporário para Opera/Operator 0.8.0 quando o cookie não persistir no fluxo de aba gerenciada: manter a capacidade curta somente em sessionStorage da própria aba SEVEN e enviá-la somente em POST same-origin para /bootstrap/execute. Nunca colocar capacidade em query/path, chat, Git ou log.
-- O fallback expira junto com a capacidade de 15 minutos, valida Origin e HMAC e não cria segredo novo.
+- /bootstrap/control sem query usa somente a implementação canônica em bootstrap.js; nenhum handler antigo pode interceptá-la silenciosamente.
+- Compatibilidade excepcional com Opera/Operator 0.8.0: /bootstrap/control?compat=1 pode ser atendido pelo handler temporário antigo, e somente /bootstrap/execute POST é roteado ao mesmo executor. Esse fallback existe porque o cookie HttpOnly do fluxo canônico não persistiu no Opera atual.
+- O fallback recebe capacidade HMAC curta exclusivamente no fragmento # da página, remove o fragmento antes da chamada e envia a capacidade somente em POST same-origin para /bootstrap/execute; não guarda token em query/path, não cria sessão persistente e não aceita Origin externo.
+- Toda capacidade expira em 15 minutos e é validada por HMAC antes de status/command/result. Nunca expor capacidade em chat, Git ou log.
+- /bootstrap/start só opera quando o navegador SEVEN já está conectado.
 - Não manter missão longa de espera para segurar aba: na 0.8.0 isso prejudica a conexão WebSocket. O bootstrap deve entregar comandos curtos e deixar a extensão livre para heartbeat/reconexão.
 - Eyes permitidos: vision e visionDiff, sempre sobre aba-alvo explícita e sem inferir estado não observado.
 - Hands permitidos: mission e sequence; dentro deles a extensão pode operar em páginas normais com click, doubleClick quando suportado, type, press, select, scroll, hover, open e navigate.
