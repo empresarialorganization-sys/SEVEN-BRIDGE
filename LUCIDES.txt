@@ -4,10 +4,13 @@ PLANO LUCIDES — SEVEN-BRIDGE
 [x] 3. Fixar a fronteira multiusuário: conta/senha no Core; senha bruta nunca no Bridge; SEVEN_AGENT_KEY somente serviço.
 [x] 4. Adicionar testes contra rota derivada da chave, rotas temporárias e regressão das ilhas.
 [x] 5. Validar CI, publicar Bridge 1.0.1 e confirmar Cloudflare sem desativar a instalação atual.
-[x] 6. Verificar o protocolo real do SEVEN Operator v0.8 instalado e isolar a causa de “Comando live inválido”.
+[x] 6. Verificar o protocolo real do SEVEN Operator instalado e isolar a causa de comando live inválido.
 [x] 7. Normalizar comandos no Bridge para protocolo live v1 antes do WebSocket, preservando compatibilidade com a extensão instalada.
 [x] 8. Validar CI, publicar Bridge 1.0.2 e confirmar saúde do Worker.
-→ 9. Validar ponta a ponta em outro chat: status, vision, mission e result; só depois remover compatibilidade comprovadamente obsoleta.
+→ 9. BOOTSTRAP TEMPORÁRIO AUTORIZADO — usar o Bridge/Cloudflare e a extensão instalada como segundo fator para obter uma sessão curta de controle e concluir os cliques administrativos de configuração.
+[ ] 10. Validar status -> vision -> mission -> result pelo bootstrap, sem quebrar o SEVEN Browser v1.
+[ ] 11. Configurar OAuth/hook/app/extensão reais e confirmar funcionamento ponta a ponta.
+[ ] 12. Remover integralmente o bootstrap temporário e só então seguir com a migração SevenEx/Operator 1.1.0.
 
 REGRAS ATUAIS
 - Não desativar nem quebrar o SEVEN Browser v1 atualmente instalado durante esta mudança.
@@ -17,10 +20,12 @@ REGRAS ATUAIS
 - O caminho multiusuário deve resolver o dispositivo do usuário autenticado e nunca misturar usuários, sessões ou dispositivos.
 - As rotas de compatibilidade existentes servem somente para preservar a instalação atual durante a migração; não devem ser copiadas como modelo de novos usuários.
 - O Bridge deve canonicalizar comandos live antes da entrega: protocolo v1, action obrigatório e compatibilidade controlada com wrappers antigos.
-- A extensão instalada v0.8 já suporta mission, sequence, vision e visionDiff; não atribuir incompatibilidade de comando apenas ao número da versão sem verificar o envelope recebido.
 - Manter compatibilidade existente até a substituição passar em teste ponta a ponta; só então remover o que ficou comprovadamente obsoleto.
-- Não criar rota, token, workflow ou endpoint temporário para diagnóstico.
-- Preservar política de ilhas: background-first, sem ativar abas, reutilização de abas gerenciadas e fechamento apenas de abas criadas pela SEVEN.
+- Exceção temporária explicitamente autorizada em 2026-08-16: o Bridge pode expor um bootstrap de curta duração para concluir configuração administrativa enquanto SevenEx/Operator real ainda não está disponível no chat.
+- O bootstrap não pode aceitar comando anônimo. A rota inicial só pode disparar uma página de claim assinada no navegador SEVEN já conectado; o controle posterior exige cookie HttpOnly assinado + CSRF e aceita somente vision, visionDiff, mission ou sequence após política de ilhas.
+- O bootstrap deve ter expiração absoluta, não criar novo segredo de ambiente, não revelar SEVEN_AGENT_KEY/device secret e ser removido logo após o app/extensão reais passarem o teste necessário.
+- Fora dessa exceção, não criar rota, token, workflow ou endpoint temporário de diagnóstico.
+- Preservar política de ilhas: background-first, sem roubar foco, reutilização de abas gerenciadas e fechamento apenas de abas criadas pela SEVEN.
 - Antes de criar, verificar se já existe solução equivalente; não duplicar arquitetura.
 - Não alterar arquitetura silenciosamente; mudanças de autenticação e resolução de dispositivo precisam de testes proporcionais ao risco.
 - Nunca incluir segredos, credenciais, senhas, tokens ou URLs privadas de capacidade neste arquivo.
