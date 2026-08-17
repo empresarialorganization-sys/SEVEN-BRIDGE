@@ -1,8 +1,8 @@
 PLANO LUCIDES — RETOMADA / SevenEx 1.1.0
 [x] Arquitetura, migrations, hardening e CI fechados.
-[ ] 1. BLOQUEADO — remover o gate do SEVEN_OPERATOR_SHARED_SECRET sem expor valor; falta configurar o mesmo segredo no Vercel Production e Cloudflare/Bridge.
-[ ] 2. BLOQUEADO — remover o gate do OAuth Server + sevenex_access_token_hook; a função existe no banco, falta habilitação administrativa no Auth.
-[ ] 3. PREPARO CONCLUÍDO / PUBLICAÇÃO BLOQUEADA pelos itens 1 e 2: SevenEx e Operator 1.1.0 estão prontos para publicação.
+→ 1. FECHAR BLOQUEIO — configurar o mesmo SEVEN_OPERATOR_SHARED_SECRET no Vercel Production e no Cloudflare/Bridge, sem expor valor; estado vivo atual: Vercel ainda Preview-only e Cloudflare ainda sem o secret.
+[ ] 2. FECHAR BLOQUEIO — habilitar Supabase OAuth Server e sevenex_access_token_hook no Auth; a função existe e está permissionada no banco, mas o endpoint público ainda responde feature_disabled e o hook ainda não está ativo.
+[ ] 3. PREPARO TÉCNICO CONCLUÍDO / PUBLICAÇÃO PENDENTE pelos itens 1 e 2: SevenEx e Operator 1.1.0 estão prontos para o corte.
 [ ] 4. Rodar E2E multiusuário/workspace/browser após publicação real.
 [ ] 5. Remover legado sem consumidores e fechar publicação somente após E2E.
 
@@ -16,9 +16,11 @@ DETALHES JÁ CONCLUÍDOS
 [x] OAuth bearer termina no Bridge; Bridge -> Core usa HMAC serviço-a-serviço.
 [x] Migrations SevenEx de browser ativo, multiworkspace e função sevenex_access_token_hook aplicadas no Supabase vivo.
 [x] chatgpt-app-submission.json criado para SevenEx com 3 tools, 5 testes positivos e 3 negativos.
-[x] CI Bridge run 62 verde após o pacote de submissão.
+[x] CI Bridge run 63 verde no head 0bb4027.
+[x] Core CI run 134 verde antes da sincronização documental final; mudança posterior no Core é somente LUCIDES.txt até nova CI confirmar.
 [x] Operator 1.1.0 possui ZIP canônico validado pelo workflow Package SEVEN Operator.
-[x] CI técnico atual do Core verde depois da remoção do bootstrap por hash e ajuste do validator.
+[x] Bridge produção atual responde health ok em versão 1.0.2 e permanece preservado até o corte 1.1.0.
+[x] Preview do Core expõe metadata OAuth e /oauth/consent com 200; ativação administrativa do Authorization Server ainda é o gate.
 
 REGRAS ATUAIS
 - SevenEx é apenas a porta fina de ChatGPT/Codex; inteligência e identidade não ficam no MCP.
