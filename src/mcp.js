@@ -1,32 +1,13 @@
 import { McpServer, WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/server';
 import { z } from 'zod';
+import { hubForDevice, resolveSevenExBinding, verifyHubBinding } from './binding.js';
 import { normalizeLiveCommand } from './command.js';
+import { operatorCompatibility, publicDeviceStatus } from './contract.js';
+import { authenticateSevenExRequest, oauthErrorResponse } from './oauth.js';
 import { enforceIslandRules } from './policy.js';
 import { MCP_VERSION } from './version.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const DEFAULT_DEVICE_CODE = '493680';
-
-function defaultHub(env) {
-  const id = env.DEVICE_HUB.idFromName(`device:${DEFAULT_DEVICE_CODE}`);
-  return env.DEVICE_HUB.get(id);
-}
-
-function constantTimeEqual(a, b) {
-  a = String(a || '');
-  b = String(b || '');
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
-}
-
-function authorized(request, env) {
-  const configured = String(env.SEVEN_AGENT_KEY || '');
-  if (configured.length < 32) return false;
-  const auth = request.headers.get('authorization') || '';
-  return auth.startsWith('Bearer ') && constantTimeEqual(auth.slice(7), configured);
-}
 
 async function responseJson(response) {
   const text = await response.text();
@@ -44,63 +25,68 @@ function textResult(data, isError = false) {
   };
 }
 
-function createServer(env) {
+function serviceErrorResponse(error, status = 503) {
+  return Response.json(
+    { jsonrpc: '2.0', error: { code: -32001, message: error }, id: null },
+    { status, headers: { 'cache-control': 'no-store' } },
+  );
+}
+
+async function currentStatus(hub) {
+  const response = await hub.fetch('https://device.internal/agent/status');
+  const data = await responseJson(response);
+  return { response, data };
+}
+
+function createServer(hub) {
   const server = new McpServer(
-    { name: 'SEVEN Browser v1', version: MCP_VERSION },
+    { name: 'SevenEx', version: MCP_VERSION },
     {
       instructions:
-        'This private SEVEN Browser v1 plugin is permanently bound to the user\'s default browser device. Never ask the user for a device code and never mention pairing unless the device is actually disconnected. seven_status checks the default browser connection. seven_command queues one browser command and returns a commandId immediately. seven_result checks that command without waiting or polling internally. Never loop or wait inside a tool call. Every browser command must name an action; the server canonicalizes the live envelope to protocol v1 before delivery. For actions that change a page, use mission or sequence so the server can enforce SEVEN island rules. Automation-created tabs stay in the background, reuse SEVEN-managed tabs, are grouped into a collapsed SEVEN island, never activate in front of the user, and only SEVEN-created temporary tabs are auto-closed.',
+        'SevenEx is a thin browser transport with exactly three tools: status, command and result. Account, workspace and browser selection are resolved server-side. Never ask for or accept a device code in tool input. seven_command queues one command and returns immediately; seven_result reads it without internal polling. Browser mutations must use mission or sequence so Bridge policy remains enforceable.',
     },
   );
 
   server.registerTool(
     'seven_status',
     {
-      title: 'SEVEN browser status',
-      description: 'Check whether the user\'s default SEVEN browser is connected. No device code is required.',
+      title: 'SevenEx status',
+      description: 'Check the signed-in user’s explicitly selected SevenEx browser.',
       inputSchema: z.object({}),
-      annotations: {
-        readOnlyHint: true,
-        destructiveHint: false,
-        idempotentHint: true,
-        openWorldHint: false,
-      },
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     async () => {
-      const response = await defaultHub(env).fetch('https://device.internal/agent/status');
-      const data = await responseJson(response);
-      return textResult(data, !response.ok);
+      const { response, data } = await currentStatus(hub);
+      if (!response.ok || data?.ok !== true) return textResult({ ok: false, error: 'device_status_failed' }, true);
+      return textResult(publicDeviceStatus(data, operatorCompatibility(data.meta)));
     },
   );
 
   server.registerTool(
     'seven_command',
     {
-      title: 'Send SEVEN browser command',
+      title: 'SevenEx command',
       description:
-        'Queue exactly one command for the user\'s default SEVEN browser and return a commandId immediately. No device code is required. The command must include an action such as vision, read, mission, or sequence; protocol v:1 is filled automatically if omitted. Never wait for browser completion inside this tool. Use seven_result separately. For click/type/press/scroll/hover/select, send a mission or sequence; direct mutating actions are rejected so the island policy cannot be bypassed.',
-      inputSchema: z.object({
-        command: z.record(z.string(), z.unknown()).describe('SEVEN extension command envelope with an action.'),
-      }),
-      annotations: {
-        readOnlyHint: false,
-        destructiveHint: true,
-        idempotentHint: false,
-        openWorldHint: true,
-      },
+        'Queue exactly one browser command for the signed-in user’s selected browser and return commandId immediately. Use seven_result separately.',
+      inputSchema: z.object({ command: z.record(z.string(), z.unknown()).describe('SEVEN browser command envelope with an action.') }),
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
     },
     async ({ command }) => {
+      const { response: statusResponse, data: status } = await currentStatus(hub);
+      if (!statusResponse.ok || status?.ok !== true) return textResult({ ok: false, error: 'device_status_failed' }, true);
+      if (status.connected !== true) return textResult({ ok: false, error: 'extension_offline' }, true);
+
+      const compatibility = operatorCompatibility(status.meta);
+      if (!compatibility.ok) return textResult({ ok: false, error: 'operator_update_required', compatibility }, true);
+
       let safeCommand;
       try {
         safeCommand = enforceIslandRules(normalizeLiveCommand(command));
       } catch (error) {
-        return textResult(
-          { ok: false, error: error instanceof Error ? error.message : 'island_policy_error' },
-          true,
-        );
+        return textResult({ ok: false, error: error instanceof Error ? error.message : 'island_policy_error' }, true);
       }
 
-      const response = await defaultHub(env).fetch('https://device.internal/agent/push', {
+      const response = await hub.fetch('https://device.internal/agent/push', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ command: safeCommand }),
@@ -113,23 +99,13 @@ function createServer(env) {
   server.registerTool(
     'seven_result',
     {
-      title: 'Read SEVEN command result',
-      description:
-        'Check the current result of a previously queued SEVEN browser command on the default device. Returns pending, completed, or expired immediately; never waits or polls internally. No device code is required.',
-      inputSchema: z.object({
-        commandId: z.string().regex(UUID_RE).describe('commandId returned by seven_command.'),
-      }),
-      annotations: {
-        readOnlyHint: true,
-        destructiveHint: false,
-        idempotentHint: true,
-        openWorldHint: false,
-      },
+      title: 'SevenEx result',
+      description: 'Read one queued SevenEx command result without waiting or internal polling.',
+      inputSchema: z.object({ commandId: z.string().regex(UUID_RE).describe('commandId returned by seven_command.') }),
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     async ({ commandId }) => {
-      const response = await defaultHub(env).fetch(
-        `https://device.internal/agent/result?id=${encodeURIComponent(commandId)}`,
-      );
+      const response = await hub.fetch(`https://device.internal/agent/result?id=${encodeURIComponent(commandId)}`);
       const data = await responseJson(response);
       return textResult(data, !response.ok);
     },
@@ -138,35 +114,34 @@ function createServer(env) {
   return server;
 }
 
-export async function handleMcp(request, env, options = {}) {
+export async function handleMcp(request, env) {
   if (request.method === 'OPTIONS') {
     return new Response(null, {
       status: 204,
       headers: {
         'access-control-allow-origin': 'https://chatgpt.com',
         'access-control-allow-methods': 'GET,POST,DELETE,OPTIONS',
-        'access-control-allow-headers':
-          'content-type,authorization,mcp-session-id,mcp-protocol-version,last-event-id,accept',
+        'access-control-allow-headers': 'content-type,authorization,mcp-session-id,mcp-protocol-version,last-event-id,accept',
         'access-control-expose-headers': 'mcp-session-id,mcp-protocol-version',
         'access-control-max-age': '86400',
       },
     });
   }
 
-  if (options.trusted !== true && !authorized(request, env)) {
-    return Response.json(
-      { jsonrpc: '2.0', error: { code: -32001, message: 'Unauthorized' }, id: null },
-      {
-        status: 401,
-        headers: {
-          'cache-control': 'no-store',
-          'www-authenticate': 'Bearer',
-        },
-      },
-    );
+  const identity = await authenticateSevenExRequest(request, env);
+  if (!identity.ok) return oauthErrorResponse(identity.error, identity.status, env);
+
+  const binding = await resolveSevenExBinding(identity, env);
+  if (!binding.ok) {
+    if (binding.status === 401) return oauthErrorResponse(binding.error, binding.status, env);
+    return serviceErrorResponse(binding.error, binding.status);
   }
 
-  const server = createServer(env);
+  const hub = hubForDevice(env, binding.deviceCode);
+  const verified = await verifyHubBinding(hub, binding);
+  if (!verified.ok) return serviceErrorResponse(verified.error, verified.status);
+
+  const server = createServer(hub);
   const transport = new WebStandardStreamableHTTPServerTransport({ enableJsonResponse: true });
   await server.connect(transport);
   const response = await transport.handleRequest(request);
